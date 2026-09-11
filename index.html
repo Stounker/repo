@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <meta name="theme-color" content="#0a1214">
-  <title>VitaNeuro T2</title>
+  <title>VitaNeuro T2 Calibration</title>
   <style>
     :root, html[data-theme="dark"] {
       --bg: #0a1214;
@@ -128,10 +128,20 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; font-weight: 600; }
     .success-msg { color: var(--accent); text-align: center; margin-top: 16px; font-size: 16px; font-weight: 700; }
+    .data-info { 
+      background: rgba(45, 212, 191, 0.1); 
+      padding: 16px; 
+      border-radius: 12px; 
+      margin-top: 16px; 
+      font-size: 13px; 
+      color: var(--muted);
+      text-align: left;
+    }
   </style>
 </head>
 <body>
 
+  <!-- ЭКРАН 1: Заставка с логотипом -->
   <div id="screen-splash" class="screen active">
     <img src="logo.png" alt="VitaNeuro" class="top-logo" onerror="this.style.display='none'">
     <div class="card">
@@ -143,11 +153,11 @@
         после чего начнётся тестирование (17 катренов).
       </p>
       <button id="startSplashBtn" class="btn primary">Начать тест</button>
-      <div id="introLoader" class="loader" style="display:none;"></div>
       <div id="introError" class="error-msg"></div>
     </div>
   </div>
 
+  <!-- ЭКРАН 2: Видеоинструкция (30 сек) -->
   <div id="screen-video" class="screen">
     <video id="instructionVideo" playsinline controls>
       <source src="intro.mp4" type="video/mp4">
@@ -155,6 +165,7 @@
     </video>
   </div>
 
+  <!-- ЭКРАН 3: Тест -->
   <div id="screen-test" class="screen">
     <div class="card">
       <div class="progress-wrap"><div id="progressFill" class="progress-fill" style="width: 0%"></div></div>
@@ -195,125 +206,113 @@
     </div>
   </div>
 
+  <!-- ЭКРАН 4: Завершение -->
   <div id="screen-end" class="screen">
     <div class="card" style="text-align: center;">
       <h1 style="color: var(--accent);">✓ Готово</h1>
-      <p class="success-msg">Спасибо, тестирование окончено,<br>данные сохранены.</p>
+      <p class="success-msg">Спасибо, тестирование окончено,<br>данные сохранены локально.</p>
       <p style="color: var(--muted); font-size: 14px;">Все 17 катренов оценены.</p>
+      <div class="data-info">
+        <strong>Данные сохранены в localStorage</strong><br>
+        Откройте консоль браузера (F12) и введите:<br>
+        <code>JSON.parse(localStorage.getItem('t2_calibration'))</code><br><br>
+        Там будут все ваши ответы.
+      </div>
+      <button onclick="location.reload()" class="btn" style="margin-top: 16px;">Начать заново</button>
     </div>
   </div>
 
   <script>
-    // === КОНФИГУРАЦИЯ ===
-    const GITHUB_TOKEN = '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';
-    const OWNER = 'Stounker';
-    const REPO = 'repo';
-    const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}/contents`;
-
+    // === КОНФИГУРАЦИЯ (данные загружаются из файлов) ===
+    let quatrainPool = [];
+    let respondentData = {};
     let currentRespondent = 1;
     let quatrainIds = [];
-    let quatrainPool = [];
     let currentIndex = 0;
     let currentSan = { s: null, a: null, n: null };
+    let collectedData = [];
+
+    // === ЗАГРУЗКА ДАННЫХ ===
+    async function loadData() {
+      try {
+        // Загружаем пул катренов
+        const poolResp = await fetch('f_f_1_210.json');
+        quatrainPool = await poolResp.json();
+        
+        // Загружаем схему респондентов
+        const respResp = await fetch('respondent_data.json');
+        respondentData = await respResp.json();
+        
+        return true;
+      } catch (e) {
+        console.error('Ошибка загрузки данных:', e);
+        return false;
+      }
+    }
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
       document.getElementById(id).classList.add('active');
     }
 
-    async function getFile(path) {
-      // ИСПРАВЛЕНО: Bearer вместо token для Fine-grained токенов
-      const resp = await fetch(`${API_BASE}/${path}`, {
-        headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
-      });
-      if (resp.status === 401) {
-        throw new Error("ОШИБКА 401: Неверный токен GitHub. Проверь, что токен Fine-grained и имеет права 'Read and write' на Contents.");
-      }
-      if (resp.status === 404) return null;
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      return { content: JSON.parse(atob(data.content)), sha: data.sha };
-    }
-
-    async function putFile(path, content, sha, message, retries = 3) {
-      const body = { message, content: btoa(JSON.stringify(content, null, 2)) };
-      if (sha) body.sha = sha;
-      
-      // ИСПРАВЛЕНО: Bearer вместо token
-      const resp = await fetch(`${API_BASE}/${path}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      if (resp.status === 401) throw new Error("ОШИБКА 401: Неверный токен при записи.");
-      if (resp.status === 409 && retries > 0) {
-        const fresh = await getFile(path);
-        if (fresh) return putFile(path, content, fresh.sha, message, retries - 1);
-      }
-      if (!resp.ok) {
-        const err = await resp.text();
-        throw new Error(`PUT failed: ${resp.status}`);
-      }
-      return resp.json();
-    }
-
+    // 1. Нажатие на "Начать тест"
     document.getElementById('startSplashBtn').addEventListener('click', async () => {
       const btn = document.getElementById('startSplashBtn');
-      const loader = document.getElementById('introLoader');
       const err = document.getElementById('introError');
       
       btn.disabled = true;
-      loader.style.display = 'block';
       err.textContent = '';
 
-      try {
-        let ratingsData = await getFile('ratings.json');
-        if (!ratingsData) {
-          await putFile('ratings.json', { ratings: [] }, null, 'Init ratings.json');
-          ratingsData = { content: { ratings: [] }, sha: null };
-        }
-
-        const uniqueRespondents = new Set(ratingsData.content.ratings.map(r => r.respondent));
-        if (uniqueRespondents.size >= 50) {
-          showScreen('screen-end');
-          return;
-        }
-
-        currentRespondent = uniqueRespondents.size > 0 ? Math.max(...uniqueRespondents) + 1 : 1;
-
-        const respData = await getFile('respondent_data.json');
-        const poolData = await getFile('f_f_1_210.json');
-        
-        if (!respData || !poolData) throw new Error('Не найдены файлы respondent_data.json или f_f_1_210.json');
-
-        const key = `respondent_${currentRespondent}`;
-        quatrainIds = respData.content[key];
-        if (!quatrainIds) throw new Error(`Нет данных для респондента ${currentRespondent}`);
-
-        quatrainPool = poolData.content;
-        
-        showScreen('screen-video');
-        const video = document.getElementById('instructionVideo');
-        video.play().catch(e => console.log("Autoplay blocked", e));
-        
-        video.addEventListener('ended', startTest);
-        setTimeout(() => {
-          if (document.getElementById('screen-video').classList.contains('active')) {
-            startTest();
-          }
-        }, 30000);
-
-      } catch (e) {
-        console.error(e);
-        err.textContent = e.message;
+      // Загружаем данные
+      const loaded = await loadData();
+      if (!loaded) {
+        err.textContent = 'Не удалось загрузить данные. Проверьте наличие файлов f_f_1_210.json и respondent_data.json';
         btn.disabled = false;
-        loader.style.display = 'none';
+        return;
       }
+
+      // Определяем номер респондента (берём следующего свободного)
+      const savedData = JSON.parse(localStorage.getItem('t2_calibration') || '[]');
+      const usedRespondents = new Set(savedData.map(d => d.respondent));
+      
+      // Находим первого респондента, который ещё не проходил
+      for (let i = 1; i <= 50; i++) {
+        if (!usedRespondents.has(i)) {
+          currentRespondent = i;
+          break;
+        }
+      }
+      
+      // Если все 50 прошли, начинаем с 1 (для тестирования)
+      if (currentRespondent > 50) currentRespondent = 1;
+
+      // Получаем список катренов для этого респондента
+      const key = `respondent_${currentRespondent}`;
+      quatrainIds = respondentData[key];
+      
+      if (!quatrainIds) {
+        err.textContent = `Нет данных для респондента ${currentRespondent}`;
+        btn.disabled = false;
+        return;
+      }
+
+      // Переходим к видео
+      showScreen('screen-video');
+      const video = document.getElementById('instructionVideo');
+      video.play().catch(e => console.log("Autoplay blocked", e));
+      
+      // После 30 секунд или окончания видео → начинаем тест
+      video.addEventListener('ended', startTest);
+      setTimeout(() => {
+        if (document.getElementById('screen-video').classList.contains('active')) {
+          startTest();
+        }
+      }, 30000);
     });
 
     function startTest() {
       currentIndex = 0;
+      collectedData = [];
       showScreen('screen-test');
       renderQuatrain();
     }
@@ -325,6 +324,7 @@
       document.getElementById('testError').textContent = '';
 
       const qId = quatrainIds[currentIndex];
+      // Ищем катрен (учитываем возможные пробелы в ID)
       const q = quatrainPool.find(item => String(item.id).trim() === String(qId).trim());
       
       if (!q) {
@@ -333,20 +333,25 @@
       }
 
       document.getElementById('quatrainText').textContent = q.text;
-      document.getElementById('progressText').textContent = `Катрен ${currentIndex + 1} из ${quatrainIds.length}`;
+      document.getElementById('progressText').textContent = `Катрен ${currentIndex + 1} из ${quatrainIds.length} (Респондент ${currentRespondent})`;
       document.getElementById('progressFill').style.width = `${((currentIndex) / quatrainIds.length) * 100}%`;
     }
 
+    // Обработка выбора SAN
     document.querySelectorAll('.san-options').forEach(group => {
       const axis = group.dataset.axis;
       group.querySelectorAll('.san-btn').forEach(btn => {
         btn.addEventListener('click', () => {
+          // Снимаем выделение со всех кнопок в группе
           group.querySelectorAll('.san-btn').forEach(b => b.classList.remove('selected', 'neg'));
+          // Выделяем нажатую
           btn.classList.add('selected');
           if (btn.dataset.val === "-1") btn.classList.add('neg');
           
+          // Сохраняем значение
           currentSan[axis] = parseInt(btn.dataset.val, 10);
           
+          // Проверяем, все ли три ответа даны
           if (currentSan.s !== null && currentSan.a !== null && currentSan.n !== null) {
             document.getElementById('nextBtn').disabled = false;
           }
@@ -354,46 +359,38 @@
       });
     });
 
-    document.getElementById('nextBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('nextBtn');
-      const loader = document.getElementById('testLoader');
-      const err = document.getElementById('testError');
+    // Кнопка "Далее"
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      const qId = quatrainIds[currentIndex];
       
-      btn.disabled = true;
-      loader.style.display = 'block';
-      err.textContent = '';
+      // Сохраняем данные
+      collectedData.push({
+        respondent: currentRespondent,
+        quatrain: parseInt(qId),
+        s: currentSan.s,
+        a: currentSan.a,
+        n: currentSan.n,
+        ts: new Date().toISOString()
+      });
 
-      try {
-        const qId = quatrainIds[currentIndex];
-        const ratingsData = await getFile('ratings.json');
-        if (!ratingsData) throw new Error('ratings.json не найден');
-
-        ratingsData.content.ratings.push({
-          respondent: currentRespondent,
-          quatrain: parseInt(qId),
-          s: currentSan.s,
-          a: currentSan.a,
-          n: currentSan.n,
-          ts: new Date().toISOString()
-        });
-
-        await putFile('ratings.json', ratingsData.content, ratingsData.sha, `Add rating resp ${currentRespondent} q ${qId}`);
-
-        currentIndex++;
-        if (currentIndex < quatrainIds.length) {
-          renderQuatrain();
-        } else {
-          document.getElementById('progressFill').style.width = '100%';
-          setTimeout(() => showScreen('screen-end'), 300);
-        }
-      } catch (e) {
-        console.error(e);
-        err.textContent = 'Ошибка сохранения: ' + e.message;
-        btn.disabled = false;
-      } finally {
-        loader.style.display = 'none';
+      currentIndex++;
+      if (currentIndex < quatrainIds.length) {
+        renderQuatrain();
+      } else {
+        // Завершение теста
+        finishTest();
       }
     });
+
+    function finishTest() {
+      // Сохраняем все данные в localStorage
+      const existingData = JSON.parse(localStorage.getItem('t2_calibration') || '[]');
+      const newData = [...existingData, ...collectedData];
+      localStorage.setItem('t2_calibration', JSON.stringify(newData));
+      
+      document.getElementById('progressFill').style.width = '100%';
+      setTimeout(() => showScreen('screen-end'), 300);
+    }
   </script>
 </body>
 </html>
