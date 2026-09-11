@@ -3,10 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
-  <meta name="theme-color" content="#0a1214">
   <title>VitaNeuro T2 Calibration</title>
   <style>
-    :root, html[data-theme="dark"] {
+    /* === ЦВЕТОВЫЕ ПЕРЕМЕННЫЕ (Светлая и Тёмная темы) === */
+    :root {
+      --bg: #f5efe8;
+      --card: rgba(255, 255, 255, 0.75);
+      --card-solid: #ffffff;
+      --text: #0a1214;
+      --muted: rgba(10, 18, 20, 0.6);
+      --line: rgba(20, 184, 166, 0.2);
+      --line-strong: rgba(20, 184, 166, 0.4);
+      --accent: #14b8a6;
+      --accent-soft: rgba(20, 184, 166, 0.1);
+      --warm: #d97706;
+      --warm-soft: rgba(217, 119, 6, 0.1);
+      --danger: #dc2626;
+      --shadow: 0 4px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.08);
+      --radius: 22px;
+      --radius-sm: 14px;
+      --glass-blur: 18px;
+      /* Мутные градиенты для катренов (Светлая тема) */
+      --grad-1: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+      --grad-2: linear-gradient(135deg, #fdf4ff 0%, #fff1f2 100%);
+      --grad-3: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
+    }
+    html[data-theme="dark"] {
       --bg: #0a1214;
       --card: rgba(19, 48, 48, 0.72);
       --card-solid: #0f2424;
@@ -19,16 +41,19 @@
       --warm: #fbbf7a;
       --warm-soft: rgba(251, 191, 122, 0.15);
       --danger: #f87171;
-      --shadow: 0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(45, 212, 191, 0.06);
-      --radius: 22px;
-      --radius-sm: 14px;
-      --glass-blur: 18px;
+      --shadow: 0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.28);
+      /* Мутные градиенты для катренов (Тёмная тема) */
+      --grad-1: linear-gradient(135deg, #0f2424 0%, #0a1214 100%);
+      --grad-2: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      --grad-3: linear-gradient(135deg, #2d1b2e 0%, #1e1b2e 100%);
     }
+
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       margin: 0; min-height: 100vh; min-height: 100dvh;
       color: var(--text); font-family: "Segoe UI", system-ui, sans-serif;
       background: var(--bg); overflow-x: hidden; position: relative;
+      transition: background 0.3s ease, color 0.3s ease;
     }
     .screen {
       display: none; min-height: 100vh; min-height: 100dvh;
@@ -38,22 +63,33 @@
     .screen.active { display: flex; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+    /* Переключатель темы */
+    .theme-toggle {
+      position: absolute; top: 20px; right: 20px; z-index: 100;
+      background: var(--card); border: 1px solid var(--line);
+      color: var(--text); border-radius: 50%; width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 20px; backdrop-filter: blur(10px);
+      transition: all 0.2s ease;
+    }
+    .theme-toggle:hover { border-color: var(--line-strong); transform: scale(1.05); }
+
     .top-logo {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-      z-index: 10;
+      position: absolute; top: 20px; left: 20px;
+      width: 80px; height: 80px; object-fit: contain; z-index: 10;
     }
 
-    #screen-video { padding: 0; background: #000; justify-content: center; }
-    #instructionVideo { width: 100%; max-width: 800px; height: auto; max-height: 100vh; object-fit: contain; }
+    /* Видео на весь экран без перемотки */
+    #screen-video { padding: 0; background: #000; justify-content: center; overflow: hidden; }
+    #instructionVideo {
+      position: fixed; top: 0; left: 0;
+      width: 100vw; height: 100vh; object-fit: cover;
+      z-index: 100;
+    }
 
+    /* Карточки */
     .card {
-      background: linear-gradient(145deg, rgba(19, 48, 48, 0.85), rgba(15, 36, 36, 0.9));
-      border: 1px solid var(--line);
+      background: var(--card); border: 1px solid var(--line);
       border-radius: var(--radius); box-shadow: var(--shadow);
       padding: 32px; width: 100%; max-width: 520px;
       backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -61,45 +97,51 @@
     }
     .card::before {
       content: ""; position: absolute; inset: 0; border-radius: inherit;
-      background: linear-gradient(155deg, rgba(45, 212, 191, 0.08) 0%, transparent 42%);
+      background: linear-gradient(155deg, rgba(255,255,255,0.08) 0%, transparent 42%);
       pointer-events: none;
     }
     .card > * { position: relative; z-index: 2; }
 
-    h1, h2 { margin: 0 0 16px; line-height: 1.2; font-weight: 700; }
-    h1 { font-size: clamp(26px, 5vw, 32px); color: var(--accent); }
+    h1 { margin: 0 0 16px; line-height: 1.2; font-weight: 700; font-size: clamp(26px, 5vw, 32px); color: var(--accent); }
     p { margin: 0 0 24px; line-height: 1.6; color: var(--muted); }
     .instruction { font-size: 16px; color: var(--text); margin-bottom: 32px; }
 
+    /* Кнопки */
     .btn {
       appearance: none; border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent), var(--card-solid);
-      color: var(--text); border-radius: var(--radius-sm); padding: 16px;
+      background: var(--card-solid); color: var(--text);
+      border-radius: var(--radius-sm); padding: 16px;
       font-size: 16px; font-weight: 650; cursor: pointer; width: 100%;
       transition: transform 0.12s ease, box-shadow 0.2s ease;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 4px 12px rgba(0,0,0,0.1);
     }
     .btn:hover { border-color: var(--line-strong); transform: translateY(-1px); }
     .btn:active { transform: translateY(1px) scale(0.98); }
     .btn.primary {
       background: linear-gradient(145deg, var(--accent), #14b8a6);
-      border: 1px solid rgba(45, 212, 191, 0.4);
-      color: #04201f; 
+      border-color: rgba(45, 212, 191, 0.4);
+      color: #04201f; font-weight: 700;
       box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 6px 18px rgba(45, 212, 191, 0.3);
-      font-weight: 700;
     }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none; }
 
+    /* Прогресс-бар */
     .progress-wrap { width: 100%; height: 6px; background: var(--card-solid); border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--warm)); border-radius: 3px; transition: width 0.3s ease; }
 
+    /* Текст катрена с мутным градиентным фоном */
     .quatrain-text {
       font-size: clamp(18px, 4.5vw, 22px); line-height: 1.7; text-align: center;
       margin-bottom: 32px; white-space: pre-line; color: var(--text);
-      padding: 20px; background: rgba(15, 36, 36, 0.5); border-radius: 12px;
-      border-left: 3px solid var(--accent);
+      padding: 24px; border-radius: 16px;
+      border: 1px solid var(--line);
+      transition: background 0.5s ease;
     }
+    .quatrain-text.grad-1 { background: var(--grad-1); }
+    .quatrain-text.grad-2 { background: var(--grad-2); }
+    .quatrain-text.grad-3 { background: var(--grad-3); }
 
+    /* Вопросы САН-3 */
     .san-group { margin-bottom: 24px; text-align: left; }
     .san-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--accent); }
     .san-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -112,36 +154,23 @@
     .san-btn:hover { border-color: var(--line-strong); }
     .san-btn.selected {
       border-color: var(--accent); background: var(--accent-soft);
-      color: var(--accent); box-shadow: 0 0 12px rgba(45, 212, 191, 0.2);
-      font-weight: 700;
+      color: var(--accent); box-shadow: 0 0 12px rgba(45, 212, 191, 0.2); font-weight: 700;
     }
     .san-btn.selected.neg {
       border-color: var(--warm); background: var(--warm-soft);
       color: var(--warm); box-shadow: 0 0 12px rgba(251, 191, 122, 0.2);
     }
 
-    .loader {
-      width: 40px; height: 40px; border: 3px solid var(--line);
-      border-top-color: var(--accent); border-radius: 50%;
-      animation: spin 0.8s linear infinite; margin: 20px auto;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
     .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; font-weight: 600; }
     .success-msg { color: var(--accent); text-align: center; margin-top: 16px; font-size: 16px; font-weight: 700; }
-    .data-info { 
-      background: rgba(45, 212, 191, 0.1); 
-      padding: 16px; 
-      border-radius: 12px; 
-      margin-top: 16px; 
-      font-size: 13px; 
-      color: var(--muted);
-      text-align: left;
-    }
   </style>
 </head>
 <body>
 
-  <!-- ЭКРАН 1: Заставка с логотипом -->
+  <!-- Переключатель темы -->
+  <button class="theme-toggle" id="themeToggle" title="Сменить тему"></button>
+
+  <!-- ЭКРАН 1: Заставка -->
   <div id="screen-splash" class="screen active">
     <img src="logo.png" alt="VitaNeuro" class="top-logo" onerror="this.style.display='none'">
     <div class="card">
@@ -157,11 +186,10 @@
     </div>
   </div>
 
-  <!-- ЭКРАН 2: Видеоинструкция (30 сек) -->
+  <!-- ЭКРАН 2: Видеоинструкция -->
   <div id="screen-video" class="screen">
-    <video id="instructionVideo" playsinline controls>
+    <video id="instructionVideo" playsinline muted>
       <source src="intro.mp4" type="video/mp4">
-      Ваш браузер не поддерживает видео.
     </video>
   </div>
 
@@ -171,7 +199,7 @@
       <div class="progress-wrap"><div id="progressFill" class="progress-fill" style="width: 0%"></div></div>
       <div id="progressText" style="text-align: center; font-size: 14px; color: var(--accent); margin-bottom: 16px; font-weight: 600;"></div>
       
-      <div id="quatrainText" class="quatrain-text"></div>
+      <div id="quatrainText" class="quatrain-text grad-1"></div>
       
       <div class="san-group">
         <div class="san-label">1. Самочувствие</div>
@@ -201,7 +229,6 @@
       </div>
 
       <button id="nextBtn" class="btn primary" disabled>Далее</button>
-      <div id="testLoader" class="loader" style="display:none;"></div>
       <div id="testError" class="error-msg"></div>
     </div>
   </div>
@@ -210,44 +237,46 @@
   <div id="screen-end" class="screen">
     <div class="card" style="text-align: center;">
       <h1 style="color: var(--accent);">✓ Готово</h1>
-      <p class="success-msg">Спасибо, тестирование окончено,<br>данные сохранены локально.</p>
+      <p class="success-msg">Спасибо, тестирование окончено,<br>данные сохранены в лог.</p>
       <p style="color: var(--muted); font-size: 14px;">Все 17 катренов оценены.</p>
-      <div class="data-info">
-        <strong>Данные сохранены в localStorage</strong><br>
-        Откройте консоль браузера (F12) и введите:<br>
-        <code>JSON.parse(localStorage.getItem('t2_calibration'))</code><br><br>
-        Там будут все ваши ответы.
-      </div>
-      <button onclick="location.reload()" class="btn" style="margin-top: 16px;">Начать заново</button>
+      <button id="downloadLogBtn" class="btn" style="margin-top: 16px;">Скачать session_log.json</button>
+      <button onclick="location.reload()" class="btn" style="margin-top: 10px;">На главную</button>
     </div>
   </div>
 
   <script>
-    // === КОНФИГУРАЦИЯ (данные загружаются из файлов) ===
+    // === ПЕРЕКЛЮЧЕНИЕ ТЕМЫ ===
+    const themeToggle = document.getElementById('themeToggle');
+    themeToggle.addEventListener('click', () => {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      themeToggle.textContent = next === 'dark' ? '🌙' : '☀️';
+    });
+
+    // === ДАННЫЕ И СОСТОЯНИЕ ===
     let quatrainPool = [];
     let respondentData = {};
     let currentRespondent = 1;
     let quatrainIds = [];
     let currentIndex = 0;
     let currentSan = { s: null, a: null, n: null };
-    let collectedData = [];
+    
+    // Логи (имитация session_log.json и ratings.json)
+    let sessionLog = JSON.parse(localStorage.getItem('session_log') || '[]');
+    let ratings = JSON.parse(localStorage.getItem('ratings') || '[]');
 
-    // === ЗАГРУЗКА ДАННЫХ ===
-    async function loadData() {
-      try {
-        // Загружаем пул катренов
-        const poolResp = await fetch('f_f_1_210.json');
-        quatrainPool = await poolResp.json();
-        
-        // Загружаем схему респондентов
-        const respResp = await fetch('respondent_data.json');
-        respondentData = await respResp.json();
-        
-        return true;
-      } catch (e) {
-        console.error('Ошибка загрузки данных:', e);
-        return false;
-      }
+    function logAction(action, details) {
+      const entry = {
+        ts: new Date().toISOString(),
+        user: currentRespondent,
+        action: action,
+        details: details
+      };
+      sessionLog.push(entry);
+      localStorage.setItem('session_log', JSON.stringify(sessionLog));
+      console.log('LOG:', entry); // Дублируем в консоль для отладки
     }
 
     function showScreen(id) {
@@ -255,64 +284,64 @@
       document.getElementById(id).classList.add('active');
     }
 
-    // 1. Нажатие на "Начать тест"
+    // === ЗАГРУЗКА ДАННЫХ ===
+    async function loadData() {
+      try {
+        const poolResp = await fetch('f_f_1_210.json');
+        quatrainPool = await poolResp.json();
+        const respResp = await fetch('respondent_data.json');
+        respondentData = await respResp.json();
+        return true;
+      } catch (e) {
+        console.error('Ошибка загрузки:', e);
+        return false;
+      }
+    }
+
+    // === СТАРТ ТЕСТА ===
     document.getElementById('startSplashBtn').addEventListener('click', async () => {
       const btn = document.getElementById('startSplashBtn');
       const err = document.getElementById('introError');
-      
       btn.disabled = true;
       err.textContent = '';
 
-      // Загружаем данные
       const loaded = await loadData();
       if (!loaded) {
-        err.textContent = 'Не удалось загрузить данные. Проверьте наличие файлов f_f_1_210.json и respondent_data.json';
+        err.textContent = 'Не удалось загрузить файлы данных.';
         btn.disabled = false;
         return;
       }
 
-      // Определяем номер респондента (берём следующего свободного)
-      const savedData = JSON.parse(localStorage.getItem('t2_calibration') || '[]');
-      const usedRespondents = new Set(savedData.map(d => d.respondent));
-      
-      // Находим первого респондента, который ещё не проходил
+      // Определяем пользователя
+      const usedUsers = new Set(ratings.map(r => r.respondent));
       for (let i = 1; i <= 50; i++) {
-        if (!usedRespondents.has(i)) {
-          currentRespondent = i;
-          break;
-        }
+        if (!usedUsers.has(i)) { currentRespondent = i; break; }
       }
-      
-      // Если все 50 прошли, начинаем с 1 (для тестирования)
-      if (currentRespondent > 50) currentRespondent = 1;
 
-      // Получаем список катренов для этого респондента
       const key = `respondent_${currentRespondent}`;
       quatrainIds = respondentData[key];
-      
       if (!quatrainIds) {
-        err.textContent = `Нет данных для респондента ${currentRespondent}`;
+        err.textContent = `Нет схемы для пользователя ${currentRespondent}`;
         btn.disabled = false;
         return;
       }
 
-      // Переходим к видео
+      // Запись в лог: пользователь начал сессию
+      logAction('session_start', { device: navigator.userAgent, quatrains_count: quatrainIds.length });
+
+      // Запуск видео
       showScreen('screen-video');
       const video = document.getElementById('instructionVideo');
       video.play().catch(e => console.log("Autoplay blocked", e));
       
-      // После 30 секунд или окончания видео → начинаем тест
       video.addEventListener('ended', startTest);
       setTimeout(() => {
-        if (document.getElementById('screen-video').classList.contains('active')) {
-          startTest();
-        }
+        if (document.getElementById('screen-video').classList.contains('active')) startTest();
       }, 30000);
     });
 
     function startTest() {
       currentIndex = 0;
-      collectedData = [];
       showScreen('screen-test');
       renderQuatrain();
     }
@@ -324,34 +353,31 @@
       document.getElementById('testError').textContent = '';
 
       const qId = quatrainIds[currentIndex];
-      // Ищем катрен (учитываем возможные пробелы в ID)
       const q = quatrainPool.find(item => String(item.id).trim() === String(qId).trim());
       
       if (!q) {
-        document.getElementById('quatrainText').textContent = `Ошибка: катрен ${qId} не найден`;
+        document.getElementById('quatrainText').textContent = `Катрен ${qId} не найден`;
         return;
       }
 
-      document.getElementById('quatrainText').textContent = q.text;
-      document.getElementById('progressText').textContent = `Катрен ${currentIndex + 1} из ${quatrainIds.length} (Респондент ${currentRespondent})`;
+      const textEl = document.getElementById('quatrainText');
+      textEl.textContent = q.text;
+      // Меняем градиент фона катрена
+      textEl.className = 'quatrain-text grad-' + ((currentIndex % 3) + 1);
+      
+      document.getElementById('progressText').textContent = `Катрен ${currentIndex + 1} из ${quatrainIds.length} (Пользователь ${currentRespondent})`;
       document.getElementById('progressFill').style.width = `${((currentIndex) / quatrainIds.length) * 100}%`;
     }
 
-    // Обработка выбора SAN
+    // === ОБРАБОТКА САН-3 ===
     document.querySelectorAll('.san-options').forEach(group => {
       const axis = group.dataset.axis;
       group.querySelectorAll('.san-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          // Снимаем выделение со всех кнопок в группе
           group.querySelectorAll('.san-btn').forEach(b => b.classList.remove('selected', 'neg'));
-          // Выделяем нажатую
           btn.classList.add('selected');
           if (btn.dataset.val === "-1") btn.classList.add('neg');
-          
-          // Сохраняем значение
           currentSan[axis] = parseInt(btn.dataset.val, 10);
-          
-          // Проверяем, все ли три ответа даны
           if (currentSan.s !== null && currentSan.a !== null && currentSan.n !== null) {
             document.getElementById('nextBtn').disabled = false;
           }
@@ -359,38 +385,43 @@
       });
     });
 
-    // Кнопка "Далее"
+    // === КНОПКА ДАЛЕЕ ===
     document.getElementById('nextBtn').addEventListener('click', () => {
       const qId = quatrainIds[currentIndex];
       
-      // Сохраняем данные
-      collectedData.push({
+      // Сохраняем оценку
+      const rating = {
         respondent: currentRespondent,
         quatrain: parseInt(qId),
-        s: currentSan.s,
-        a: currentSan.a,
-        n: currentSan.n,
+        s: currentSan.s, a: currentSan.a, n: currentSan.n,
         ts: new Date().toISOString()
-      });
+      };
+      ratings.push(rating);
+      localStorage.setItem('ratings', JSON.stringify(ratings));
+
+      // Запись в лог: оценка поставлена
+      logAction('rating_submitted', { quatrain: qId, s: currentSan.s, a: currentSan.a, n: currentSan.n });
 
       currentIndex++;
       if (currentIndex < quatrainIds.length) {
         renderQuatrain();
       } else {
-        // Завершение теста
-        finishTest();
+        logAction('session_end', { total_ratings: quatrainIds.length });
+        document.getElementById('progressFill').style.width = '100%';
+        setTimeout(() => showScreen('screen-end'), 300);
       }
     });
 
-    function finishTest() {
-      // Сохраняем все данные в localStorage
-      const existingData = JSON.parse(localStorage.getItem('t2_calibration') || '[]');
-      const newData = [...existingData, ...collectedData];
-      localStorage.setItem('t2_calibration', JSON.stringify(newData));
-      
-      document.getElementById('progressFill').style.width = '100%';
-      setTimeout(() => showScreen('screen-end'), 300);
-    }
+    // === СКАЧИВАНИЕ ЛОГА ===
+    document.getElementById('downloadLogBtn').addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sessionLog, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", `session_log_user${currentRespondent}.json`);
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    });
   </script>
 </body>
 </html>
