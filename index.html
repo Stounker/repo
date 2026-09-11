@@ -38,7 +38,6 @@
     .screen.active { display: flex; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Логотип на первом экране — УВЕЛИЧЕН */
     .top-logo {
       position: absolute;
       top: 20px;
@@ -49,11 +48,9 @@
       z-index: 10;
     }
 
-    /* Видео экран */
     #screen-video { padding: 0; background: #000; justify-content: center; }
     #instructionVideo { width: 100%; max-width: 800px; height: auto; max-height: 100vh; object-fit: contain; }
 
-    /* Cards — с нашими цветами */
     .card {
       background: linear-gradient(145deg, rgba(19, 48, 48, 0.85), rgba(15, 36, 36, 0.9));
       border: 1px solid var(--line);
@@ -74,7 +71,6 @@
     p { margin: 0 0 24px; line-height: 1.6; color: var(--muted); }
     .instruction { font-size: 16px; color: var(--text); margin-bottom: 32px; }
 
-    /* Buttons — с бирюзой */
     .btn {
       appearance: none; border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent), var(--card-solid);
@@ -94,11 +90,9 @@
     }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none; }
 
-    /* Progress Bar — бирюзовый */
     .progress-wrap { width: 100%; height: 6px; background: var(--card-solid); border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--warm)); border-radius: 3px; transition: width 0.3s ease; }
 
-    /* Quatrain Text */
     .quatrain-text {
       font-size: clamp(18px, 4.5vw, 22px); line-height: 1.7; text-align: center;
       margin-bottom: 32px; white-space: pre-line; color: var(--text);
@@ -106,7 +100,6 @@
       border-left: 3px solid var(--accent);
     }
 
-    /* SAN Questions */
     .san-group { margin-bottom: 24px; text-align: left; }
     .san-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--accent); }
     .san-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -127,7 +120,6 @@
       color: var(--warm); box-shadow: 0 0 12px rgba(251, 191, 122, 0.2);
     }
 
-    /* Loader & Errors */
     .loader {
       width: 40px; height: 40px; border: 3px solid var(--line);
       border-top-color: var(--accent); border-radius: 50%;
@@ -140,7 +132,6 @@
 </head>
 <body>
 
-  <!-- ЭКРАН 1: Заставка с логотипом -->
   <div id="screen-splash" class="screen active">
     <img src="logo.png" alt="VitaNeuro" class="top-logo" onerror="this.style.display='none'">
     <div class="card">
@@ -157,7 +148,6 @@
     </div>
   </div>
 
-  <!-- ЭКРАН 2: Видеоинструкция (30 сек) -->
   <div id="screen-video" class="screen">
     <video id="instructionVideo" playsinline controls>
       <source src="intro.mp4" type="video/mp4">
@@ -165,7 +155,6 @@
     </video>
   </div>
 
-  <!-- ЭКРАН 3: Тест -->
   <div id="screen-test" class="screen">
     <div class="card">
       <div class="progress-wrap"><div id="progressFill" class="progress-fill" style="width: 0%"></div></div>
@@ -206,7 +195,6 @@
     </div>
   </div>
 
-  <!-- ЭКРАН 4: Завершение -->
   <div id="screen-end" class="screen">
     <div class="card" style="text-align: center;">
       <h1 style="color: var(--accent);">✓ Готово</h1>
@@ -217,12 +205,11 @@
 
   <script>
     // === КОНФИГУРАЦИЯ ===
-    const GITHUB_TOKEN = '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';
+    const GITHUB_TOKEN = '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';
     const OWNER = 'Stounker';
     const REPO = 'repo';
     const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}/contents`;
 
-    // === СОСТОЯНИЕ ===
     let currentRespondent = 1;
     let quatrainIds = [];
     let quatrainPool = [];
@@ -235,11 +222,12 @@
     }
 
     async function getFile(path) {
+      // ИСПРАВЛЕНО: Bearer вместо token для Fine-grained токенов
       const resp = await fetch(`${API_BASE}/${path}`, {
-        headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
+        headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
       });
       if (resp.status === 401) {
-        throw new Error("ОШИБКА 401: Неверный токен GitHub");
+        throw new Error("ОШИБКА 401: Неверный токен GitHub. Проверь, что токен Fine-grained и имеет права 'Read and write' на Contents.");
       }
       if (resp.status === 404) return null;
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -251,13 +239,14 @@
       const body = { message, content: btoa(JSON.stringify(content, null, 2)) };
       if (sha) body.sha = sha;
       
+      // ИСПРАВЛЕНО: Bearer вместо token
       const resp = await fetch(`${API_BASE}/${path}`, {
         method: 'PUT',
-        headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
 
-      if (resp.status === 401) throw new Error("ОШИБКА 401: Неверный токен");
+      if (resp.status === 401) throw new Error("ОШИБКА 401: Неверный токен при записи.");
       if (resp.status === 409 && retries > 0) {
         const fresh = await getFile(path);
         if (fresh) return putFile(path, content, fresh.sha, message, retries - 1);
@@ -269,7 +258,6 @@
       return resp.json();
     }
 
-    // 1. Нажатие на "Начать тест"
     document.getElementById('startSplashBtn').addEventListener('click', async () => {
       const btn = document.getElementById('startSplashBtn');
       const loader = document.getElementById('introLoader');
@@ -280,14 +268,12 @@
       err.textContent = '';
 
       try {
-        // Проверяем ratings.json
         let ratingsData = await getFile('ratings.json');
         if (!ratingsData) {
           await putFile('ratings.json', { ratings: [] }, null, 'Init ratings.json');
           ratingsData = { content: { ratings: [] }, sha: null };
         }
 
-        // Считаем уникальных респондентов
         const uniqueRespondents = new Set(ratingsData.content.ratings.map(r => r.respondent));
         if (uniqueRespondents.size >= 50) {
           showScreen('screen-end');
@@ -296,11 +282,10 @@
 
         currentRespondent = uniqueRespondents.size > 0 ? Math.max(...uniqueRespondents) + 1 : 1;
 
-        // Загружаем данные
         const respData = await getFile('respondent_data.json');
         const poolData = await getFile('f_f_1_210.json');
         
-        if (!respData || !poolData) throw new Error('Не найдены файлы данных');
+        if (!respData || !poolData) throw new Error('Не найдены файлы respondent_data.json или f_f_1_210.json');
 
         const key = `respondent_${currentRespondent}`;
         quatrainIds = respData.content[key];
@@ -308,12 +293,10 @@
 
         quatrainPool = poolData.content;
         
-        // Переходим к видео
         showScreen('screen-video');
         const video = document.getElementById('instructionVideo');
         video.play().catch(e => console.log("Autoplay blocked", e));
         
-        // Автопереход после 30 сек или окончания видео
         video.addEventListener('ended', startTest);
         setTimeout(() => {
           if (document.getElementById('screen-video').classList.contains('active')) {
@@ -354,7 +337,6 @@
       document.getElementById('progressFill').style.width = `${((currentIndex) / quatrainIds.length) * 100}%`;
     }
 
-    // Обработка SAN
     document.querySelectorAll('.san-options').forEach(group => {
       const axis = group.dataset.axis;
       group.querySelectorAll('.san-btn').forEach(btn => {
@@ -372,7 +354,6 @@
       });
     });
 
-    // Кнопка Далее
     document.getElementById('nextBtn').addEventListener('click', async () => {
       const btn = document.getElementById('nextBtn');
       const loader = document.getElementById('testLoader');
