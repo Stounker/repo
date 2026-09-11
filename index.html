@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <meta name="theme-color" content="#0a1214">
-  <title>VitaNeuro Calibration</title>
+  <title>VitaNeuro T2 Calibration</title>
   <style>
     :root, html[data-theme="dark"] {
       --bg: #0a1214;
@@ -26,7 +26,7 @@
     body {
       margin: 0; min-height: 100vh; min-height: 100dvh;
       color: var(--text); font-family: "Segoe UI", system-ui, sans-serif;
-      background: var(--bg); overflow-x: hidden;
+      background: var(--bg); overflow-x: hidden; position: relative;
     }
     .screen {
       display: none; min-height: 100vh; min-height: 100dvh;
@@ -36,9 +36,20 @@
     .screen.active { display: flex; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Video Screen */
-    #screen-video { padding: 0; background: #000; }
-    #introVideo { width: 100%; height: 100vh; height: 100dvh; object-fit: cover; }
+    /* Логотип на первом экране */
+    .top-logo {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      z-index: 10;
+    }
+
+    /* Видео экран */
+    #screen-video { padding: 0; background: #000; justify-content: center; }
+    #instructionVideo { width: 100%; max-width: 800px; height: auto; max-height: 100vh; object-fit: contain; }
 
     /* Cards */
     .card {
@@ -46,7 +57,7 @@
       border-radius: var(--radius); box-shadow: var(--shadow);
       padding: 24px; width: 100%; max-width: 480px;
       backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
-      position: relative; overflow: hidden;
+      position: relative; overflow: hidden; text-align: center;
     }
     .card::before {
       content: ""; position: absolute; inset: 0; border-radius: inherit;
@@ -57,9 +68,8 @@
 
     h1, h2 { margin: 0 0 16px; line-height: 1.2; font-weight: 700; }
     h1 { font-size: clamp(22px, 5vw, 28px); color: var(--accent); }
-    h2 { font-size: clamp(18px, 4vw, 22px); }
-    p { margin: 0 0 16px; line-height: 1.5; color: var(--muted); }
-    .instruction { font-size: 15px; color: var(--text); margin-bottom: 24px; }
+    p { margin: 0 0 24px; line-height: 1.5; color: var(--muted); }
+    .instruction { font-size: 16px; color: var(--text); margin-bottom: 32px; }
 
     /* Buttons */
     .btn {
@@ -90,7 +100,7 @@
     }
 
     /* SAN Questions */
-    .san-group { margin-bottom: 24px; }
+    .san-group { margin-bottom: 24px; text-align: left; }
     .san-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
     .san-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .san-btn {
@@ -109,42 +119,42 @@
       color: var(--warm); box-shadow: 0 0 12px rgba(251, 191, 122, 0.1);
     }
 
-    /* Loader */
+    /* Loader & Errors */
     .loader {
       width: 40px; height: 40px; border: 3px solid var(--line);
       border-top-color: var(--accent); border-radius: 50%;
       animation: spin 0.8s linear infinite; margin: 20px auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; }
+    .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; font-weight: 600; }
+    .token-hint { color: var(--accent); font-size: 13px; margin-top: 8px; text-align: left; background: rgba(45, 212, 191, 0.1); padding: 12px; border-radius: 8px; }
   </style>
 </head>
 <body>
 
-  <!-- ЭКРАН 0: Видео -->
-  <div id="screen-video" class="screen active">
-    <video id="introVideo" autoplay muted playsinline>
-      <source src="intro.mp4" type="video/mp4">
-    </video>
-  </div>
-
-  <!-- ЭКРАН 1: Интро -->
-  <div id="screen-intro" class="screen">
+  <!-- ЭКРАН 1: Заставка с логотипом -->
+  <div id="screen-splash" class="screen active">
+    <img src="logo.png" alt="VitaNeuro" class="top-logo" onerror="this.style.display='none'">
     <div class="card">
       <h1>VitaNeuro T2</h1>
       <p class="instruction">
-        Оценивается не то, о чём текст, а то, что он сделал с вами.<br><br>
-        • Прочитайте текст два раза.<br>
-        • Отметьте своё состояние.<br>
-        • Не возвращайтесь назад.
+        Оценка восприятия коротких текстов.<br><br>
+        Вам будет показана короткая видеоинструкция,<br>
+        после чего начнётся тестирование.
       </p>
-      <button id="startBtn" class="btn primary">Начать тест</button>
-      <div id="introLoader" class="loader" style="display:none;"></div>
-      <div id="introError" class="error-msg"></div>
-    </div>
+      <button id="startSplashBtn" class="btn primary">Начать тест</button>
+    each</div>
   </div>
 
-  <!-- ЭКРАН 2: Тест -->
+  <!-- ЭКРАН 2: Видеоинструкция (30 сек) -->
+  <div id="screen-video" class="screen">
+    <video id="instructionVideo" playsinline>
+      <source src="intro.mp4" type="video/mp4">
+      Ваш браузер не поддерживает видео.
+    </video>
+  </div>
+
+  <!-- ЭКРАН 3: Тест -->
   <div id="screen-test" class="screen">
     <div class="card">
       <div class="progress-wrap"><div id="progressFill" class="progress-fill" style="width: 0%"></div></div>
@@ -185,7 +195,7 @@
     </div>
   </div>
 
-  <!-- ЭКРАН 3: Завершение -->
+  <!-- ЭКРАН 4: Завершение -->
   <div id="screen-end" class="screen">
     <div class="card" style="text-align: center;">
       <h1 style="color: var(--accent);">Готово</h1>
@@ -194,20 +204,20 @@
   </div>
 
   <script>
-    // === КОНФИГУРАЦИЯ ===
-    const GITHUB_TOKEN = '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'; // ВСТАВЬ СЮДА СВОЙ ТОКЕН
+    // =========================================================
+    // ⚠️ ВАЖНО: ВСТАВЬ СЮДА СВОЙ ТОКЕН GitHub (начинается на ghp_)
+    // =========================================================
+    const GITHUB_TOKEN = 'ВСТАВЬ_СЮДА_СВОЙ_ТОКЕН_ghp_...'; 
     const OWNER = 'Stounker';
     const REPO = 'repo';
     const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}/contents`;
 
-    // === СОСТОЯНИЕ ===
     let currentRespondent = 1;
     let quatrainIds = [];
     let quatrainPool = [];
     let currentIndex = 0;
     let currentSan = { s: null, a: null, n: null };
 
-    // === УТИЛИТЫ ===
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
       document.getElementById(id).classList.add('active');
@@ -217,6 +227,9 @@
       const resp = await fetch(`${API_BASE}/${path}`, {
         headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
       });
+      if (resp.status === 401) {
+        throw new Error("ОШИБКА 401: Неверный или отсутствующий GitHub токен. Проверь константу GITHUB_TOKEN в коде.");
+      }
       if (resp.status === 404) return null;
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const data = await resp.json();
@@ -233,18 +246,10 @@
         body: JSON.stringify(body)
       });
 
+      if (resp.status === 401) throw new Error("ОШИБКА 401: Неверный токен при записи.");
       if (resp.status === 409 && retries > 0) {
-        // Race condition: повторяем чтение и запись
         const fresh = await getFile(path);
-        if (fresh) {
-          // Обновляем контент новыми данными (предполагаем, что мы добавляем в массив)
-          if (path === 'ratings.json' && content.ratings) {
-             // В данном простом случае мы передаем уже обновленный content, 
-             // но если был конфликт, нам нужно перечитать и добавить наш элемент заново.
-             // Для упрощения: вызывающая сторона должна обработать это, или мы делаем это здесь:
-          }
-          return putFile(path, content, fresh.sha, message, retries - 1);
-        }
+        if (fresh) return putFile(path, content, fresh.sha, message, retries - 1);
       }
       if (!resp.ok) {
         const err = await resp.text();
@@ -253,38 +258,46 @@
       return resp.json();
     }
 
-    // === ЛОГИКА ===
-    document.getElementById('introVideo').addEventListener('ended', () => {
-      setTimeout(() => showScreen('screen-intro'), 500);
+    // 1. Нажатие на "Начать тест" на заставке
+    document.getElementById('startSplashBtn').addEventListener('click', () => {
+      showScreen('screen-video');
+      const video = document.getElementById('instructionVideo');
+      video.play().catch(e => console.log("Автоплей заблокирован браузером, нужно взаимодействие", e));
+      
+      // После 30 секунд (или когда видео закончится) переходим к инициализации теста
+      video.addEventListener('ended', initTest);
+      
+      // На случай, если видео короче или длиннее, принудительный переход через 30 сек
+      setTimeout(() => {
+        if (document.getElementById('screen-video').classList.contains('active')) {
+          initTest();
+        }
+      }, 30000);
     });
 
-    document.getElementById('startBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('startBtn');
-      const loader = document.getElementById('introLoader');
-      const err = document.getElementById('introError');
-      
-      btn.disabled = true;
-      loader.style.display = 'block';
-      err.textContent = '';
+    // 2. Инициализация данных с GitHub
+    async function initTest() {
+      showScreen('screen-test'); // Показываем экран теста, но с лоадером
+      document.getElementById('quatrainText').innerHTML = '<div class="loader"></div><p>Загрузка данных...</p>';
+      document.getElementById('testError').textContent = '';
 
       try {
-        // 1. Читаем или создаем ratings.json
+        // Проверка токена через попытку чтения
         let ratingsData = await getFile('ratings.json');
         if (!ratingsData) {
           await putFile('ratings.json', { ratings: [] }, null, 'Init ratings.json');
           ratingsData = { content: { ratings: [] }, sha: null };
         }
 
-        // 2. Считаем уникальных респондентов
         const uniqueRespondents = new Set(ratingsData.content.ratings.map(r => r.respondent));
         if (uniqueRespondents.size >= 50) {
+          document.getElementById('quatrainText').innerHTML = '';
           showScreen('screen-end');
           return;
         }
 
         currentRespondent = uniqueRespondents.size > 0 ? Math.max(...uniqueRespondents) + 1 : 1;
 
-        // 3. Загружаем схему и пул
         const respData = await getFile('respondent_data.json');
         const poolData = await getFile('f_f_1_210.json');
         
@@ -295,19 +308,15 @@
         if (!quatrainIds) throw new Error(`Нет данных для респондента ${currentRespondent}`);
 
         quatrainPool = poolData.content;
-
-        // 4. Запускаем тест
         currentIndex = 0;
-        showScreen('screen-test');
         renderQuatrain();
 
       } catch (e) {
         console.error(e);
-        err.textContent = 'Ошибка загрузки: ' + e.message;
-        btn.disabled = false;
-        loader.style.display = 'none';
+        document.getElementById('quatrainText').innerHTML = '';
+        document.getElementById('testError').innerHTML = `Ошибка: ${e.message}<br><br><div class="token-hint">💡 Убедись, что ты заменил "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" в коде на реальный токен с правами "repo".</div>`;
       }
-    });
+    }
 
     function renderQuatrain() {
       currentSan = { s: null, a: null, n: null };
@@ -316,7 +325,6 @@
       document.getElementById('testError').textContent = '';
 
       const qId = quatrainIds[currentIndex];
-      // Ищем катрен, учитывая возможные пробелы в ID из JSON
       const q = quatrainPool.find(item => String(item.id).trim() === String(qId).trim());
       
       if (!q) {
@@ -329,7 +337,6 @@
       document.getElementById('progressFill').style.width = `${((currentIndex) / quatrainIds.length) * 100}%`;
     }
 
-    // Обработка кликов по SAN
     document.querySelectorAll('.san-options').forEach(group => {
       const axis = group.dataset.axis;
       group.querySelectorAll('.san-btn').forEach(btn => {
@@ -339,8 +346,6 @@
           if (btn.dataset.val === "-1") btn.classList.add('neg');
           
           currentSan[axis] = parseInt(btn.dataset.val, 10);
-          
-          // Проверка готовности
           if (currentSan.s !== null && currentSan.a !== null && currentSan.n !== null) {
             document.getElementById('nextBtn').disabled = false;
           }
@@ -359,12 +364,9 @@
 
       try {
         const qId = quatrainIds[currentIndex];
-        
-        // Читаем актуальный ratings.json для защиты от конфликтов
         const ratingsData = await getFile('ratings.json');
         if (!ratingsData) throw new Error('ratings.json исчез');
 
-        // Добавляем запись
         ratingsData.content.ratings.push({
           respondent: currentRespondent,
           quatrain: qId,
@@ -374,7 +376,6 @@
           ts: new Date().toISOString()
         });
 
-        // Пишем обратно
         await putFile('ratings.json', ratingsData.content, ratingsData.sha, `Add rating resp ${currentRespondent} q ${qId}`);
 
         currentIndex++;
