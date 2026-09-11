@@ -3,32 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
+  <meta name="theme-color" content="#0a1214">
   <title>VitaNeuro T2 Calibration</title>
   <style>
-    /* === ЦВЕТОВЫЕ ПЕРЕМЕННЫЕ (Светлая и Тёмная темы) === */
-    :root {
-      --bg: #f5efe8;
-      --card: rgba(255, 255, 255, 0.75);
-      --card-solid: #ffffff;
-      --text: #0a1214;
-      --muted: rgba(10, 18, 20, 0.6);
-      --line: rgba(20, 184, 166, 0.2);
-      --line-strong: rgba(20, 184, 166, 0.4);
-      --accent: #14b8a6;
-      --accent-soft: rgba(20, 184, 166, 0.1);
-      --warm: #d97706;
-      --warm-soft: rgba(217, 119, 6, 0.1);
-      --danger: #dc2626;
-      --shadow: 0 4px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.08);
-      --radius: 22px;
-      --radius-sm: 14px;
-      --glass-blur: 18px;
-      /* Мутные градиенты для катренов (Светлая тема) */
-      --grad-1: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
-      --grad-2: linear-gradient(135deg, #fdf4ff 0%, #fff1f2 100%);
-      --grad-3: linear-gradient(135deg, #fef3c7 0%, #ffedd5 100%);
-    }
-    html[data-theme="dark"] {
+    /* === ЦВЕТОВЫЕ ПЕРЕМЕННЫЕ === */
+    :root, html[data-theme="dark"] {
       --bg: #0a1214;
       --card: rgba(19, 48, 48, 0.72);
       --card-solid: #0f2424;
@@ -41,11 +20,33 @@
       --warm: #fbbf7a;
       --warm-soft: rgba(251, 191, 122, 0.15);
       --danger: #f87171;
-      --shadow: 0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.28);
-      /* Мутные градиенты для катренов (Тёмная тема) */
-      --grad-1: linear-gradient(135deg, #0f2424 0%, #0a1214 100%);
-      --grad-2: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      --grad-3: linear-gradient(135deg, #2d1b2e 0%, #1e1b2e 100%);
+      --shadow: 0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(45, 212, 191, 0.06);
+      --radius: 22px;
+      --radius-sm: 14px;
+      --glass-blur: 18px;
+      /* Мутные градиенты для катренов (тёмная тема) */
+      --grad-1: linear-gradient(135deg, rgba(45, 212, 191, 0.08), rgba(15, 36, 36, 0.4));
+      --grad-2: linear-gradient(135deg, rgba(251, 191, 122, 0.08), rgba(30, 27, 46, 0.4));
+      --grad-3: linear-gradient(135deg, rgba(45, 212, 191, 0.05), rgba(251, 191, 122, 0.05), rgba(15, 36, 36, 0.4));
+    }
+    html[data-theme="light"] {
+      --bg: #f5efe8;
+      --card: rgba(255, 255, 255, 0.85);
+      --card-solid: #ffffff;
+      --text: #0a1214;
+      --muted: rgba(10, 18, 20, 0.6);
+      --line: rgba(20, 184, 166, 0.2);
+      --line-strong: rgba(20, 184, 166, 0.4);
+      --accent: #14b8a6;
+      --accent-soft: rgba(20, 184, 166, 0.1);
+      --warm: #d97706;
+      --warm-soft: rgba(217, 119, 6, 0.1);
+      --danger: #dc2626;
+      --shadow: 0 4px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.08);
+      /* Мутные градиенты для катренов (светлая тема) */
+      --grad-1: linear-gradient(135deg, rgba(20, 184, 166, 0.08), rgba(245, 239, 232, 0.6));
+      --grad-2: linear-gradient(135deg, rgba(217, 119, 6, 0.08), rgba(245, 239, 232, 0.6));
+      --grad-3: linear-gradient(135deg, rgba(20, 184, 166, 0.05), rgba(217, 119, 6, 0.05), rgba(245, 239, 232, 0.6));
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -74,17 +75,17 @@
     }
     .theme-toggle:hover { border-color: var(--line-strong); transform: scale(1.05); }
 
+    /* Логотип */
     .top-logo {
       position: absolute; top: 20px; left: 20px;
       width: 80px; height: 80px; object-fit: contain; z-index: 10;
     }
 
-    /* Видео на весь экран без перемотки */
+    /* Видео на весь экран */
     #screen-video { padding: 0; background: #000; justify-content: center; overflow: hidden; }
     #instructionVideo {
-      position: fixed; top: 0; left: 0;
-      width: 100vw; height: 100vh; object-fit: cover;
-      z-index: 100;
+      width: 100%; max-width: 100%;
+      max-height: 100vh; object-fit: contain;
     }
 
     /* Карточки */
@@ -129,12 +130,18 @@
     .progress-wrap { width: 100%; height: 6px; background: var(--card-solid); border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--warm)); border-radius: 3px; transition: width 0.3s ease; }
 
-    /* Текст катрена с мутным градиентным фоном */
+    /* Текст катрена — НЕ ВЫЛЕЗАЕТ ЗА ЭКРАН */
     .quatrain-text {
-      font-size: clamp(18px, 4.5vw, 22px); line-height: 1.7; text-align: center;
-      margin-bottom: 32px; white-space: pre-line; color: var(--text);
-      padding: 24px; border-radius: 16px;
-      border: 1px solid var(--line);
+      font-size: clamp(16px, 4vw, 20px);
+      line-height: 1.7; text-align: center;
+      margin-bottom: 32px; white-space: pre-line;
+      color: var(--text); padding: 24px;
+      border-radius: 16px; border: 1px solid var(--line);
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      max-width: 100%;
+      hyphens: auto;
+      -webkit-hyphens: auto;
       transition: background 0.5s ease;
     }
     .quatrain-text.grad-1 { background: var(--grad-1); }
@@ -163,14 +170,20 @@
 
     .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; font-weight: 600; }
     .success-msg { color: var(--accent); text-align: center; margin-top: 16px; font-size: 16px; font-weight: 700; }
+    .log-info {
+      background: rgba(45, 212, 191, 0.1);
+      padding: 16px; border-radius: 12px;
+      margin-top: 16px; font-size: 13px; color: var(--muted);
+      text-align: left; font-family: monospace;
+    }
   </style>
 </head>
 <body>
 
   <!-- Переключатель темы -->
-  <button class="theme-toggle" id="themeToggle" title="Сменить тему"></button>
+  <button class="theme-toggle" id="themeToggle" title="Сменить тему">🌙</button>
 
-  <!-- ЭКРАН 1: Заставка -->
+  <!-- ЭКРАН 1: Заставка с логотипом -->
   <div id="screen-splash" class="screen active">
     <img src="logo.png" alt="VitaNeuro" class="top-logo" onerror="this.style.display='none'">
     <div class="card">
@@ -178,7 +191,7 @@
       <p class="instruction">
         <strong>Оценка восприятия коротких текстов</strong><br><br>
         Оценивается не то, о чём текст, а то, что он сделал с вами.<br><br>
-        Вам будет показана короткая видеоинструкция,<br>
+        Вам будет показана видеоинструкция,<br>
         после чего начнётся тестирование (17 катренов).
       </p>
       <button id="startSplashBtn" class="btn primary">Начать тест</button>
@@ -186,10 +199,11 @@
     </div>
   </div>
 
-  <!-- ЭКРАН 2: Видеоинструкция -->
+  <!-- ЭКРАН 2: Видеоинструкция (со звуком, без перемотки) -->
   <div id="screen-video" class="screen">
-    <video id="instructionVideo" playsinline muted>
+    <video id="instructionVideo" playsinline>
       <source src="intro.mp4" type="video/mp4">
+      Ваш браузер не поддерживает видео.
     </video>
   </div>
 
@@ -237,10 +251,9 @@
   <div id="screen-end" class="screen">
     <div class="card" style="text-align: center;">
       <h1 style="color: var(--accent);">✓ Готово</h1>
-      <p class="success-msg">Спасибо, тестирование окончено,<br>данные сохранены в лог.</p>
+      <p class="success-msg">Спасибо, тестирование окончено,<br>данные записаны в лог.</p>
       <p style="color: var(--muted); font-size: 14px;">Все 17 катренов оценены.</p>
-      <button id="downloadLogBtn" class="btn" style="margin-top: 16px;">Скачать session_log.json</button>
-      <button onclick="location.reload()" class="btn" style="margin-top: 10px;">На главную</button>
+      <div id="logPreview" class="log-info"></div>
     </div>
   </div>
 
@@ -263,20 +276,22 @@
     let currentIndex = 0;
     let currentSan = { s: null, a: null, n: null };
     
-    // Логи (имитация session_log.json и ratings.json)
-    let sessionLog = JSON.parse(localStorage.getItem('session_log') || '[]');
+    // Логи (имитация session_log.json)
+    let sessionLog = JSON.parse(localStorage.getItem('session_log') || '{"sessions":[]}');
     let ratings = JSON.parse(localStorage.getItem('ratings') || '[]');
+    let currentSession = null;
 
     function logAction(action, details) {
       const entry = {
         ts: new Date().toISOString(),
-        user: currentRespondent,
+        respondent: currentRespondent,
         action: action,
         details: details
       };
-      sessionLog.push(entry);
+      if (!sessionLog.sessions) sessionLog.sessions = [];
+      sessionLog.sessions.push(entry);
       localStorage.setItem('session_log', JSON.stringify(sessionLog));
-      console.log('LOG:', entry); // Дублируем в консоль для отладки
+      console.log('LOG:', entry);
     }
 
     function showScreen(id) {
@@ -312,21 +327,42 @@
         return;
       }
 
-      // Определяем пользователя
+      // Определяем номер пользователя (trim ключей, т.к. в JSON есть пробелы)
       const usedUsers = new Set(ratings.map(r => r.respondent));
+      let found = false;
       for (let i = 1; i <= 50; i++) {
-        if (!usedUsers.has(i)) { currentRespondent = i; break; }
+        if (!usedUsers.has(i)) {
+          currentRespondent = i;
+          found = true;
+          break;
+        }
       }
-
-      const key = `respondent_${currentRespondent}`;
-      quatrainIds = respondentData[key];
-      if (!quatrainIds) {
-        err.textContent = `Нет схемы для пользователя ${currentRespondent}`;
-        btn.disabled = false;
+      
+      // Если все 50 прошли — тест окончен
+      if (!found) {
+        document.getElementById('startSplashBtn').textContent = 'Тестирование окончено';
+        document.getElementById('startSplashBtn').disabled = true;
+        err.textContent = 'Все 50 респондентов прошли тест.';
         return;
       }
 
-      // Запись в лог: пользователь начал сессию
+      // Ищем ключ с trim (в JSON ключи типа "respondent_1 ")
+      const key = Object.keys(respondentData).find(k => k.trim() === `respondent_${currentRespondent}`);
+      if (!key) {
+        err.textContent = `Нет схемы для респондента ${currentRespondent}`;
+        btn.disabled = false;
+        return;
+      }
+      quatrainIds = respondentData[key];
+
+      // Создаём сессию
+      currentSession = {
+        respondent: currentRespondent,
+        started: new Date().toISOString(),
+        ratings: []
+      };
+
+      // Запись в лог: сессия начата
       logAction('session_start', { device: navigator.userAgent, quatrains_count: quatrainIds.length });
 
       // Запуск видео
@@ -353,6 +389,7 @@
       document.getElementById('testError').textContent = '';
 
       const qId = quatrainIds[currentIndex];
+      // Ищем катрен с trim (в JSON id типа "1 ")
       const q = quatrainPool.find(item => String(item.id).trim() === String(qId).trim());
       
       if (!q) {
@@ -362,7 +399,7 @@
 
       const textEl = document.getElementById('quatrainText');
       textEl.textContent = q.text;
-      // Меняем градиент фона катрена
+      // Меняем градиент фона катрена по кругу
       textEl.className = 'quatrain-text grad-' + ((currentIndex % 3) + 1);
       
       document.getElementById('progressText').textContent = `Катрен ${currentIndex + 1} из ${quatrainIds.length} (Пользователь ${currentRespondent})`;
@@ -389,15 +426,19 @@
     document.getElementById('nextBtn').addEventListener('click', () => {
       const qId = quatrainIds[currentIndex];
       
-      // Сохраняем оценку
       const rating = {
         respondent: currentRespondent,
         quatrain: parseInt(qId),
-        s: currentSan.s, a: currentSan.a, n: currentSan.n,
+        s: currentSan.s,
+        a: currentSan.a,
+        n: currentSan.n,
         ts: new Date().toISOString()
       };
+      
       ratings.push(rating);
       localStorage.setItem('ratings', JSON.stringify(ratings));
+      
+      if (currentSession) currentSession.ratings.push(rating);
 
       // Запись в лог: оценка поставлена
       logAction('rating_submitted', { quatrain: qId, s: currentSan.s, a: currentSan.a, n: currentSan.n });
@@ -406,22 +447,31 @@
       if (currentIndex < quatrainIds.length) {
         renderQuatrain();
       } else {
-        logAction('session_end', { total_ratings: quatrainIds.length });
-        document.getElementById('progressFill').style.width = '100%';
-        setTimeout(() => showScreen('screen-end'), 300);
+        finishTest();
       }
     });
 
-    // === СКАЧИВАНИЕ ЛОГА ===
-    document.getElementById('downloadLogBtn').addEventListener('click', () => {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sessionLog, null, 2));
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr);
-      downloadAnchorNode.setAttribute("download", `session_log_user${currentRespondent}.json`);
-      document.body.appendChild(downloadAnchorNode);
-      downloadAnchorNode.click();
-      downloadAnchorNode.remove();
-    });
+    function finishTest() {
+      if (currentSession) {
+        currentSession.completed = new Date().toISOString();
+        if (!sessionLog.sessions) sessionLog.sessions = [];
+        sessionLog.sessions.push(currentSession);
+      }
+      
+      logAction('session_end', { total_ratings: quatrainIds.length });
+      localStorage.setItem('session_log', JSON.stringify(sessionLog));
+      
+      document.getElementById('progressFill').style.width = '100%';
+      
+      // Показываем превью лога
+      const logPreview = document.getElementById('logPreview');
+      logPreview.innerHTML = `<strong>Лог сессии (последние 3 записи):</strong><br>` +
+        sessionLog.sessions.slice(-3).map(s => 
+          `${s.action} — ${new Date(s.ts).toLocaleTimeString()}`
+        ).join('<br>');
+      
+      setTimeout(() => showScreen('screen-end'), 300);
+    }
   </script>
 </body>
 </html>
