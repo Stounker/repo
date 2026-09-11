@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <meta name="theme-color" content="#0a1214">
-  <title>VitaNeuro T2 Calibration</title>
+  <title>VitaNeuro T2</title>
   <style>
     :root, html[data-theme="dark"] {
       --bg: #0a1214;
@@ -15,7 +15,9 @@
       --line: rgba(45, 212, 191, 0.14);
       --line-strong: rgba(45, 212, 191, 0.28);
       --accent: #2dd4bf;
+      --accent-soft: rgba(45, 212, 191, 0.15);
       --warm: #fbbf7a;
+      --warm-soft: rgba(251, 191, 122, 0.15);
       --danger: #f87171;
       --shadow: 0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(45, 212, 191, 0.06);
       --radius: 22px;
@@ -36,13 +38,13 @@
     .screen.active { display: flex; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Логотип на первом экране */
+    /* Логотип на первом экране — УВЕЛИЧЕН */
     .top-logo {
       position: absolute;
-      top: 16px;
-      left: 16px;
-      width: 48px;
-      height: 48px;
+      top: 20px;
+      left: 20px;
+      width: 80px;
+      height: 80px;
       object-fit: contain;
       z-index: 10;
     }
@@ -51,27 +53,28 @@
     #screen-video { padding: 0; background: #000; justify-content: center; }
     #instructionVideo { width: 100%; max-width: 800px; height: auto; max-height: 100vh; object-fit: contain; }
 
-    /* Cards */
+    /* Cards — с нашими цветами */
     .card {
-      background: var(--card); border: 1px solid var(--line);
+      background: linear-gradient(145deg, rgba(19, 48, 48, 0.85), rgba(15, 36, 36, 0.9));
+      border: 1px solid var(--line);
       border-radius: var(--radius); box-shadow: var(--shadow);
-      padding: 24px; width: 100%; max-width: 480px;
+      padding: 32px; width: 100%; max-width: 520px;
       backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
       position: relative; overflow: hidden; text-align: center;
     }
     .card::before {
       content: ""; position: absolute; inset: 0; border-radius: inherit;
-      background: linear-gradient(155deg, rgba(255,255,255,0.08) 0%, transparent 42%);
+      background: linear-gradient(155deg, rgba(45, 212, 191, 0.08) 0%, transparent 42%);
       pointer-events: none;
     }
     .card > * { position: relative; z-index: 2; }
 
     h1, h2 { margin: 0 0 16px; line-height: 1.2; font-weight: 700; }
-    h1 { font-size: clamp(22px, 5vw, 28px); color: var(--accent); }
-    p { margin: 0 0 24px; line-height: 1.5; color: var(--muted); }
+    h1 { font-size: clamp(26px, 5vw, 32px); color: var(--accent); }
+    p { margin: 0 0 24px; line-height: 1.6; color: var(--muted); }
     .instruction { font-size: 16px; color: var(--text); margin-bottom: 32px; }
 
-    /* Buttons */
+    /* Buttons — с бирюзой */
     .btn {
       appearance: none; border: 1px solid var(--line);
       background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent), var(--card-solid);
@@ -83,40 +86,45 @@
     .btn:hover { border-color: var(--line-strong); transform: translateY(-1px); }
     .btn:active { transform: translateY(1px) scale(0.98); }
     .btn.primary {
-      background: linear-gradient(180deg, rgba(255,255,255,0.22), transparent 55%), linear-gradient(145deg, var(--accent), #1a7a75);
-      border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-      color: #04201f; box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 6px 18px rgba(45, 212, 191, 0.3);
+      background: linear-gradient(145deg, var(--accent), #14b8a6);
+      border: 1px solid rgba(45, 212, 191, 0.4);
+      color: #04201f; 
+      box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 6px 18px rgba(45, 212, 191, 0.3);
+      font-weight: 700;
     }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none; }
 
-    /* Progress Bar */
-    .progress-wrap { width: 100%; height: 4px; background: var(--card-solid); border-radius: 2px; margin-bottom: 24px; overflow: hidden; }
-    .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s ease; }
+    /* Progress Bar — бирюзовый */
+    .progress-wrap { width: 100%; height: 6px; background: var(--card-solid); border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--warm)); border-radius: 3px; transition: width 0.3s ease; }
 
     /* Quatrain Text */
     .quatrain-text {
-      font-size: clamp(18px, 4.5vw, 22px); line-height: 1.6; text-align: center;
+      font-size: clamp(18px, 4.5vw, 22px); line-height: 1.7; text-align: center;
       margin-bottom: 32px; white-space: pre-line; color: var(--text);
+      padding: 20px; background: rgba(15, 36, 36, 0.5); border-radius: 12px;
+      border-left: 3px solid var(--accent);
     }
 
     /* SAN Questions */
     .san-group { margin-bottom: 24px; text-align: left; }
-    .san-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
-    .san-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .san-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--accent); }
+    .san-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     .san-btn {
-      padding: 12px 8px; font-size: 13px; font-weight: 600;
-      background: var(--card-solid); border: 1px solid var(--line);
-      color: var(--muted); border-radius: 10px; cursor: pointer;
+      padding: 14px 10px; font-size: 14px; font-weight: 600;
+      background: var(--card-solid); border: 2px solid var(--line);
+      color: var(--muted); border-radius: 12px; cursor: pointer;
       transition: all 0.2s ease; text-align: center;
     }
     .san-btn:hover { border-color: var(--line-strong); }
     .san-btn.selected {
-      border-color: var(--accent); background: rgba(45, 212, 191, 0.15);
-      color: var(--accent); box-shadow: 0 0 12px rgba(45, 212, 191, 0.1);
+      border-color: var(--accent); background: var(--accent-soft);
+      color: var(--accent); box-shadow: 0 0 12px rgba(45, 212, 191, 0.2);
+      font-weight: 700;
     }
     .san-btn.selected.neg {
-      border-color: var(--warm); background: rgba(251, 191, 122, 0.15);
-      color: var(--warm); box-shadow: 0 0 12px rgba(251, 191, 122, 0.1);
+      border-color: var(--warm); background: var(--warm-soft);
+      color: var(--warm); box-shadow: 0 0 12px rgba(251, 191, 122, 0.2);
     }
 
     /* Loader & Errors */
@@ -127,7 +135,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; font-weight: 600; }
-    .token-hint { color: var(--accent); font-size: 13px; margin-top: 8px; text-align: left; background: rgba(45, 212, 191, 0.1); padding: 12px; border-radius: 8px; }
+    .success-msg { color: var(--accent); text-align: center; margin-top: 16px; font-size: 16px; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -138,17 +146,20 @@
     <div class="card">
       <h1>VitaNeuro T2</h1>
       <p class="instruction">
-        Оценка восприятия коротких текстов.<br><br>
+        <strong>Оценка восприятия коротких текстов</strong><br><br>
+        Оценивается не то, о чём текст, а то, что он сделал с вами.<br><br>
         Вам будет показана короткая видеоинструкция,<br>
-        после чего начнётся тестирование.
+        после чего начнётся тестирование (17 катренов).
       </p>
       <button id="startSplashBtn" class="btn primary">Начать тест</button>
-    each</div>
+      <div id="introLoader" class="loader" style="display:none;"></div>
+      <div id="introError" class="error-msg"></div>
+    </div>
   </div>
 
   <!-- ЭКРАН 2: Видеоинструкция (30 сек) -->
   <div id="screen-video" class="screen">
-    <video id="instructionVideo" playsinline>
+    <video id="instructionVideo" playsinline controls>
       <source src="intro.mp4" type="video/mp4">
       Ваш браузер не поддерживает видео.
     </video>
@@ -158,12 +169,12 @@
   <div id="screen-test" class="screen">
     <div class="card">
       <div class="progress-wrap"><div id="progressFill" class="progress-fill" style="width: 0%"></div></div>
-      <div id="progressText" style="text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 16px;"></div>
+      <div id="progressText" style="text-align: center; font-size: 14px; color: var(--accent); margin-bottom: 16px; font-weight: 600;"></div>
       
       <div id="quatrainText" class="quatrain-text"></div>
       
       <div class="san-group">
-        <div class="san-label">Самочувствие</div>
+        <div class="san-label">1. Самочувствие</div>
         <div class="san-options" data-axis="s">
           <button class="san-btn" data-val="-1">Тяжесть</button>
           <button class="san-btn" data-val="0">Нейтрально</button>
@@ -172,7 +183,7 @@
       </div>
       
       <div class="san-group">
-        <div class="san-label">Энергия</div>
+        <div class="san-label">2. Энергия</div>
         <div class="san-options" data-axis="a">
           <button class="san-btn" data-val="-1">Спад</button>
           <button class="san-btn" data-val="0">Ровно</button>
@@ -181,7 +192,7 @@
       </div>
       
       <div class="san-group">
-        <div class="san-label">Настроение</div>
+        <div class="san-label">3. Настроение</div>
         <div class="san-options" data-axis="n">
           <button class="san-btn neg" data-val="-1">Негатив</button>
           <button class="san-btn" data-val="0">Ровно</button>
@@ -198,20 +209,20 @@
   <!-- ЭКРАН 4: Завершение -->
   <div id="screen-end" class="screen">
     <div class="card" style="text-align: center;">
-      <h1 style="color: var(--accent);">Готово</h1>
-      <p class="instruction">Спасибо, тестирование окончено, данные сохранены.</p>
+      <h1 style="color: var(--accent);">✓ Готово</h1>
+      <p class="success-msg">Спасибо, тестирование окончено,<br>данные сохранены.</p>
+      <p style="color: var(--muted); font-size: 14px;">Все 17 катренов оценены.</p>
     </div>
   </div>
 
   <script>
-    // =========================================================
-    // ⚠️ ВАЖНО: ВСТАВЬ СЮДА СВОЙ ТОКЕН GitHub (начинается на ghp_)
-    // =========================================================
-    const GITHUB_TOKEN = 'ВСТАВЬ_СЮДА_СВОЙ_ТОКЕН_ghp_...'; 
+    // === КОНФИГУРАЦИЯ ===
+    const GITHUB_TOKEN = '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';
     const OWNER = 'Stounker';
     const REPO = 'repo';
     const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}/contents`;
 
+    // === СОСТОЯНИЕ ===
     let currentRespondent = 1;
     let quatrainIds = [];
     let quatrainPool = [];
@@ -228,7 +239,7 @@
         headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
       });
       if (resp.status === 401) {
-        throw new Error("ОШИБКА 401: Неверный или отсутствующий GitHub токен. Проверь константу GITHUB_TOKEN в коде.");
+        throw new Error("ОШИБКА 401: Неверный токен GitHub");
       }
       if (resp.status === 404) return null;
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -246,76 +257,82 @@
         body: JSON.stringify(body)
       });
 
-      if (resp.status === 401) throw new Error("ОШИБКА 401: Неверный токен при записи.");
+      if (resp.status === 401) throw new Error("ОШИБКА 401: Неверный токен");
       if (resp.status === 409 && retries > 0) {
         const fresh = await getFile(path);
         if (fresh) return putFile(path, content, fresh.sha, message, retries - 1);
       }
       if (!resp.ok) {
         const err = await resp.text();
-        throw new Error(`PUT failed: ${resp.status} ${err}`);
+        throw new Error(`PUT failed: ${resp.status}`);
       }
       return resp.json();
     }
 
-    // 1. Нажатие на "Начать тест" на заставке
-    document.getElementById('startSplashBtn').addEventListener('click', () => {
-      showScreen('screen-video');
-      const video = document.getElementById('instructionVideo');
-      video.play().catch(e => console.log("Автоплей заблокирован браузером, нужно взаимодействие", e));
+    // 1. Нажатие на "Начать тест"
+    document.getElementById('startSplashBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('startSplashBtn');
+      const loader = document.getElementById('introLoader');
+      const err = document.getElementById('introError');
       
-      // После 30 секунд (или когда видео закончится) переходим к инициализации теста
-      video.addEventListener('ended', initTest);
-      
-      // На случай, если видео короче или длиннее, принудительный переход через 30 сек
-      setTimeout(() => {
-        if (document.getElementById('screen-video').classList.contains('active')) {
-          initTest();
-        }
-      }, 30000);
-    });
-
-    // 2. Инициализация данных с GitHub
-    async function initTest() {
-      showScreen('screen-test'); // Показываем экран теста, но с лоадером
-      document.getElementById('quatrainText').innerHTML = '<div class="loader"></div><p>Загрузка данных...</p>';
-      document.getElementById('testError').textContent = '';
+      btn.disabled = true;
+      loader.style.display = 'block';
+      err.textContent = '';
 
       try {
-        // Проверка токена через попытку чтения
+        // Проверяем ratings.json
         let ratingsData = await getFile('ratings.json');
         if (!ratingsData) {
           await putFile('ratings.json', { ratings: [] }, null, 'Init ratings.json');
           ratingsData = { content: { ratings: [] }, sha: null };
         }
 
+        // Считаем уникальных респондентов
         const uniqueRespondents = new Set(ratingsData.content.ratings.map(r => r.respondent));
         if (uniqueRespondents.size >= 50) {
-          document.getElementById('quatrainText').innerHTML = '';
           showScreen('screen-end');
           return;
         }
 
         currentRespondent = uniqueRespondents.size > 0 ? Math.max(...uniqueRespondents) + 1 : 1;
 
+        // Загружаем данные
         const respData = await getFile('respondent_data.json');
         const poolData = await getFile('f_f_1_210.json');
         
-        if (!respData || !poolData) throw new Error('Не найдены respondent_data.json или f_f_1_210.json');
+        if (!respData || !poolData) throw new Error('Не найдены файлы данных');
 
         const key = `respondent_${currentRespondent}`;
         quatrainIds = respData.content[key];
         if (!quatrainIds) throw new Error(`Нет данных для респондента ${currentRespondent}`);
 
         quatrainPool = poolData.content;
-        currentIndex = 0;
-        renderQuatrain();
+        
+        // Переходим к видео
+        showScreen('screen-video');
+        const video = document.getElementById('instructionVideo');
+        video.play().catch(e => console.log("Autoplay blocked", e));
+        
+        // Автопереход после 30 сек или окончания видео
+        video.addEventListener('ended', startTest);
+        setTimeout(() => {
+          if (document.getElementById('screen-video').classList.contains('active')) {
+            startTest();
+          }
+        }, 30000);
 
       } catch (e) {
         console.error(e);
-        document.getElementById('quatrainText').innerHTML = '';
-        document.getElementById('testError').innerHTML = `Ошибка: ${e.message}<br><br><div class="token-hint">💡 Убедись, что ты заменил "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" в коде на реальный токен с правами "repo".</div>`;
+        err.textContent = e.message;
+        btn.disabled = false;
+        loader.style.display = 'none';
       }
+    });
+
+    function startTest() {
+      currentIndex = 0;
+      showScreen('screen-test');
+      renderQuatrain();
     }
 
     function renderQuatrain() {
@@ -337,6 +354,7 @@
       document.getElementById('progressFill').style.width = `${((currentIndex) / quatrainIds.length) * 100}%`;
     }
 
+    // Обработка SAN
     document.querySelectorAll('.san-options').forEach(group => {
       const axis = group.dataset.axis;
       group.querySelectorAll('.san-btn').forEach(btn => {
@@ -346,6 +364,7 @@
           if (btn.dataset.val === "-1") btn.classList.add('neg');
           
           currentSan[axis] = parseInt(btn.dataset.val, 10);
+          
           if (currentSan.s !== null && currentSan.a !== null && currentSan.n !== null) {
             document.getElementById('nextBtn').disabled = false;
           }
@@ -353,6 +372,7 @@
       });
     });
 
+    // Кнопка Далее
     document.getElementById('nextBtn').addEventListener('click', async () => {
       const btn = document.getElementById('nextBtn');
       const loader = document.getElementById('testLoader');
@@ -365,11 +385,11 @@
       try {
         const qId = quatrainIds[currentIndex];
         const ratingsData = await getFile('ratings.json');
-        if (!ratingsData) throw new Error('ratings.json исчез');
+        if (!ratingsData) throw new Error('ratings.json не найден');
 
         ratingsData.content.ratings.push({
           respondent: currentRespondent,
-          quatrain: qId,
+          quatrain: parseInt(qId),
           s: currentSan.s,
           a: currentSan.a,
           n: currentSan.n,
@@ -387,7 +407,7 @@
         }
       } catch (e) {
         console.error(e);
-        err.textContent = 'Ошибка сохранения: ' + e.message + '. Попробуйте еще раз.';
+        err.textContent = 'Ошибка сохранения: ' + e.message;
         btn.disabled = false;
       } finally {
         loader.style.display = 'none';
