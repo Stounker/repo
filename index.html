@@ -20,11 +20,10 @@
       --warm: #fbbf7a;
       --warm-soft: rgba(251, 191, 122, 0.15);
       --danger: #f87171;
-      --shadow: 0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(45, 212, 191, 0.06);
+      --shadow: 0 4px 6px rgba(0,0,0,0.12), 0 12px 28px rgba(0,0,0,0.28);
       --radius: 22px;
       --radius-sm: 14px;
       --glass-blur: 18px;
-      /* Мутные градиенты для катренов (тёмная тема) */
       --grad-1: linear-gradient(135deg, rgba(45, 212, 191, 0.08), rgba(15, 36, 36, 0.4));
       --grad-2: linear-gradient(135deg, rgba(251, 191, 122, 0.08), rgba(30, 27, 46, 0.4));
       --grad-3: linear-gradient(135deg, rgba(45, 212, 191, 0.05), rgba(251, 191, 122, 0.05), rgba(15, 36, 36, 0.4));
@@ -43,7 +42,6 @@
       --warm-soft: rgba(217, 119, 6, 0.1);
       --danger: #dc2626;
       --shadow: 0 4px 6px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.08);
-      /* Мутные градиенты для катренов (светлая тема) */
       --grad-1: linear-gradient(135deg, rgba(20, 184, 166, 0.08), rgba(245, 239, 232, 0.6));
       --grad-2: linear-gradient(135deg, rgba(217, 119, 6, 0.08), rgba(245, 239, 232, 0.6));
       --grad-3: linear-gradient(135deg, rgba(20, 184, 166, 0.05), rgba(217, 119, 6, 0.05), rgba(245, 239, 232, 0.6));
@@ -64,7 +62,6 @@
     .screen.active { display: flex; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Переключатель темы */
     .theme-toggle {
       position: absolute; top: 20px; right: 20px; z-index: 100;
       background: var(--card); border: 1px solid var(--line);
@@ -75,20 +72,18 @@
     }
     .theme-toggle:hover { border-color: var(--line-strong); transform: scale(1.05); }
 
-    /* Логотип */
     .top-logo {
       position: absolute; top: 20px; left: 20px;
       width: 80px; height: 80px; object-fit: contain; z-index: 10;
     }
 
-    /* Видео на весь экран */
+    /* Видео на весь экран, со звуком, без перемотки */
     #screen-video { padding: 0; background: #000; justify-content: center; overflow: hidden; }
     #instructionVideo {
       width: 100%; max-width: 100%;
       max-height: 100vh; object-fit: contain;
     }
 
-    /* Карточки */
     .card {
       background: var(--card); border: 1px solid var(--line);
       border-radius: var(--radius); box-shadow: var(--shadow);
@@ -107,7 +102,6 @@
     p { margin: 0 0 24px; line-height: 1.6; color: var(--muted); }
     .instruction { font-size: 16px; color: var(--text); margin-bottom: 32px; }
 
-    /* Кнопки */
     .btn {
       appearance: none; border: 1px solid var(--line);
       background: var(--card-solid); color: var(--text);
@@ -126,7 +120,6 @@
     }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none; }
 
-    /* Прогресс-бар */
     .progress-wrap { width: 100%; height: 6px; background: var(--card-solid); border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--warm)); border-radius: 3px; transition: width 0.3s ease; }
 
@@ -148,7 +141,6 @@
     .quatrain-text.grad-2 { background: var(--grad-2); }
     .quatrain-text.grad-3 { background: var(--grad-3); }
 
-    /* Вопросы САН-3 */
     .san-group { margin-bottom: 24px; text-align: left; }
     .san-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--accent); }
     .san-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -170,20 +162,14 @@
 
     .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; font-weight: 600; }
     .success-msg { color: var(--accent); text-align: center; margin-top: 16px; font-size: 16px; font-weight: 700; }
-    .log-info {
-      background: rgba(45, 212, 191, 0.1);
-      padding: 16px; border-radius: 12px;
-      margin-top: 16px; font-size: 13px; color: var(--muted);
-      text-align: left; font-family: monospace;
-    }
+    .status-msg { text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted); min-height: 18px; }
   </style>
 </head>
 <body>
 
-  <!-- Переключатель темы -->
   <button class="theme-toggle" id="themeToggle" title="Сменить тему">🌙</button>
 
-  <!-- ЭКРАН 1: Заставка с логотипом -->
+  <!-- ЭКРАН 1: Заставка -->
   <div id="screen-splash" class="screen active">
     <img src="logo.png" alt="VitaNeuro" class="top-logo" onerror="this.style.display='none'">
     <div class="card">
@@ -244,6 +230,7 @@
 
       <button id="nextBtn" class="btn primary" disabled>Далее</button>
       <div id="testError" class="error-msg"></div>
+      <div id="statusMsg" class="status-msg"></div>
     </div>
   </div>
 
@@ -251,13 +238,16 @@
   <div id="screen-end" class="screen">
     <div class="card" style="text-align: center;">
       <h1 style="color: var(--accent);">✓ Готово</h1>
-      <p class="success-msg">Спасибо, тестирование окончено,<br>данные записаны в лог.</p>
+      <p class="success-msg">Спасибо, тестирование окончено,<br>данные отправлены на сервер.</p>
       <p style="color: var(--muted); font-size: 14px;">Все 17 катренов оценены.</p>
-      <div id="logPreview" class="log-info"></div>
     </div>
   </div>
 
   <script>
+    // === КОНФИГУРАЦИЯ ===
+    // Твоя ссылка на Google Apps Script
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkdr1RjjjSv7zjtRrx-ZBuvGhN-cVQK8ZhC4XUkcNThjsJKg2MXHKUc00VCdXihXqx/exec';
+
     // === ПЕРЕКЛЮЧЕНИЕ ТЕМЫ ===
     const themeToggle = document.getElementById('themeToggle');
     themeToggle.addEventListener('click', () => {
@@ -275,24 +265,9 @@
     let quatrainIds = [];
     let currentIndex = 0;
     let currentSan = { s: null, a: null, n: null };
-    
-    // Логи (имитация session_log.json)
     let sessionLog = JSON.parse(localStorage.getItem('session_log') || '{"sessions":[]}');
     let ratings = JSON.parse(localStorage.getItem('ratings') || '[]');
     let currentSession = null;
-
-    function logAction(action, details) {
-      const entry = {
-        ts: new Date().toISOString(),
-        respondent: currentRespondent,
-        action: action,
-        details: details
-      };
-      if (!sessionLog.sessions) sessionLog.sessions = [];
-      sessionLog.sessions.push(entry);
-      localStorage.setItem('session_log', JSON.stringify(sessionLog));
-      console.log('LOG:', entry);
-    }
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
@@ -313,6 +288,27 @@
       }
     }
 
+    // === ОТПРАВКА ДАННЫХ НА GOOGLE APPS SCRIPT ===
+    async function sendToServer(data) {
+      const statusEl = document.getElementById('statusMsg');
+      statusEl.textContent = 'Сохранение...';
+      try {
+        // mode: 'no-cors' и text/plain обязательны для Google Apps Script
+        await fetch(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(data)
+        });
+        statusEl.textContent = '✓ Сохранено';
+        statusEl.style.color = 'var(--accent)';
+      } catch (e) {
+        console.error('Ошибка отправки:', e);
+        statusEl.textContent = '⚠ Ошибка сети (данные сохранены локально)';
+        statusEl.style.color = 'var(--danger)';
+      }
+    }
+
     // === СТАРТ ТЕСТА ===
     document.getElementById('startSplashBtn').addEventListener('click', async () => {
       const btn = document.getElementById('startSplashBtn');
@@ -322,12 +318,12 @@
 
       const loaded = await loadData();
       if (!loaded) {
-        err.textContent = 'Не удалось загрузить файлы данных.';
+        err.textContent = 'Не удалось загрузить файлы данных (f_f_1_210.json или respondent_data.json).';
         btn.disabled = false;
         return;
       }
 
-      // Определяем номер пользователя (trim ключей, т.к. в JSON есть пробелы)
+      // Определяем номер пользователя
       const usedUsers = new Set(ratings.map(r => r.respondent));
       let found = false;
       for (let i = 1; i <= 50; i++) {
@@ -338,10 +334,8 @@
         }
       }
       
-      // Если все 50 прошли — тест окончен
       if (!found) {
-        document.getElementById('startSplashBtn').textContent = 'Тестирование окончено';
-        document.getElementById('startSplashBtn').disabled = true;
+        btn.textContent = 'Тестирование окончено';
         err.textContent = 'Все 50 респондентов прошли тест.';
         return;
       }
@@ -355,15 +349,11 @@
       }
       quatrainIds = respondentData[key];
 
-      // Создаём сессию
       currentSession = {
         respondent: currentRespondent,
         started: new Date().toISOString(),
         ratings: []
       };
-
-      // Запись в лог: сессия начата
-      logAction('session_start', { device: navigator.userAgent, quatrains_count: quatrainIds.length });
 
       // Запуск видео
       showScreen('screen-video');
@@ -387,6 +377,7 @@
       document.getElementById('nextBtn').disabled = true;
       document.querySelectorAll('.san-btn').forEach(b => b.classList.remove('selected', 'neg'));
       document.getElementById('testError').textContent = '';
+      document.getElementById('statusMsg').textContent = '';
 
       const qId = quatrainIds[currentIndex];
       // Ищем катрен с trim (в JSON id типа "1 ")
@@ -399,7 +390,6 @@
 
       const textEl = document.getElementById('quatrainText');
       textEl.textContent = q.text;
-      // Меняем градиент фона катрена по кругу
       textEl.className = 'quatrain-text grad-' + ((currentIndex % 3) + 1);
       
       document.getElementById('progressText').textContent = `Катрен ${currentIndex + 1} из ${quatrainIds.length} (Пользователь ${currentRespondent})`;
@@ -423,7 +413,10 @@
     });
 
     // === КНОПКА ДАЛЕЕ ===
-    document.getElementById('nextBtn').addEventListener('click', () => {
+    document.getElementById('nextBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('nextBtn');
+      btn.disabled = true;
+
       const qId = quatrainIds[currentIndex];
       
       const rating = {
@@ -437,11 +430,10 @@
       
       ratings.push(rating);
       localStorage.setItem('ratings', JSON.stringify(ratings));
-      
       if (currentSession) currentSession.ratings.push(rating);
 
-      // Запись в лог: оценка поставлена
-      logAction('rating_submitted', { quatrain: qId, s: currentSan.s, a: currentSan.a, n: currentSan.n });
+      // Отправляем оценку на Google Apps Script
+      await sendToServer(rating);
 
       currentIndex++;
       if (currentIndex < quatrainIds.length) {
@@ -456,21 +448,11 @@
         currentSession.completed = new Date().toISOString();
         if (!sessionLog.sessions) sessionLog.sessions = [];
         sessionLog.sessions.push(currentSession);
+        localStorage.setItem('session_log', JSON.stringify(sessionLog));
       }
       
-      logAction('session_end', { total_ratings: quatrainIds.length });
-      localStorage.setItem('session_log', JSON.stringify(sessionLog));
-      
       document.getElementById('progressFill').style.width = '100%';
-      
-      // Показываем превью лога
-      const logPreview = document.getElementById('logPreview');
-      logPreview.innerHTML = `<strong>Лог сессии (последние 3 записи):</strong><br>` +
-        sessionLog.sessions.slice(-3).map(s => 
-          `${s.action} — ${new Date(s.ts).toLocaleTimeString()}`
-        ).join('<br>');
-      
-      setTimeout(() => showScreen('screen-end'), 300);
+      setTimeout(() => showScreen('screen-end'), 500);
     }
   </script>
 </body>
