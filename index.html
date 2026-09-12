@@ -66,7 +66,6 @@
       color: var(--text); border-radius: 50%; width: 44px; height: 44px;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; font-size: 20px; backdrop-filter: blur(10px);
-      transition: all 0.2s ease;
     }
     .theme-toggle:hover { border-color: var(--line-strong); transform: scale(1.05); }
 
@@ -84,11 +83,6 @@
       padding: 32px; width: 100%; max-width: 520px;
       backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
       position: relative; overflow: hidden; text-align: center;
-    }
-    .card::before {
-      content: ""; position: absolute; inset: 0; border-radius: inherit;
-      background: linear-gradient(155deg, rgba(255,255,255,0.08) 0%, transparent 42%);
-      pointer-events: none;
     }
     .card > * { position: relative; z-index: 2; }
 
@@ -153,6 +147,34 @@
     .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; font-weight: 600; }
     .success-msg { color: var(--accent); text-align: center; margin-top: 16px; font-size: 16px; font-weight: 700; }
     .status-msg { text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted); min-height: 18px; }
+
+    /* СПИННЕР */
+    .spinner {
+      display: inline-block; width: 28px; height: 28px;
+      border: 3px solid var(--line); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.9s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* КНОПКА СБРОСА — прозрачная в левом нижнем углу финального экрана */
+    .reset-btn {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      opacity: 0.15;
+      transition: opacity 0.3s, background 0.3s;
+      z-index: 1000;
+    }
+    .reset-btn:hover {
+      opacity: 0.8;
+      background: rgba(248, 113, 113, 0.3);
+    }
   </style>
 </head>
 <body>
@@ -170,7 +192,6 @@
         после чего начнётся тестирование (17 катренов).
       </p>
       <button id="startSplashBtn" class="btn primary">Начать тест</button>
-      <button id="unsentBtn" class="btn" style="display:none; margin-top:10px;">📤 Отправить прошлую сессию</button>
       <div id="introStatus" class="status-msg"></div>
       <div id="introError" class="error-msg"></div>
     </div>
@@ -219,22 +240,24 @@
   </div>
 
   <div id="screen-end" class="screen">
-    <div class="card" style="text-align: center;">
-      <h1 style="color: var(--accent);">✓ Готово</h1>
-      <p class="success-msg">Спасибо, тестирование окончено.</p>
-      <p id="endStatus" style="color: var(--muted); font-size: 14px;"></p>
-      <button id="retrySendBtn" class="btn" style="display:none; margin-top:10px;">Отправить снова</button>
+    <div class="card">
+      <div id="endSpinnerBlock">
+        <div class="spinner"></div>
+        <p style="color: var(--muted); font-size: 14px;">Отправляем данные на сервер...<br>Пожалуйста, не закрывайте окно (до 30 секунд)</p>
+      </div>
+      <div id="endDoneBlock" style="display:none;">
+        <h1 style="color: var(--accent);">Спасибо, тест закончен</h1>
+        <p id="endStatus" class="success-msg">Все 17 катренов отправлены.</p>
+        <button id="goodbyeBtn" class="btn primary">До свидания</button>
+      </div>
     </div>
+    <button class="reset-btn" id="resetBtn" title="Сбросить всех пользователей"></button>
   </div>
 
   <script>
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkdr1RjjjSv7zjtRrx-ZBuvGhN-cVQK8ZhC4XUkcNThjsJKg2MXHKUc00VCdXihXqx/exec';
     const RESPONDENT_LIMIT = 50;
-
-    console.log('===========================================');
-    console.log('🚀 VitaNeuro T2 Calibration загружена');
-    console.log('📤 URL скрипта:', GOOGLE_SCRIPT_URL);
-    console.log('===========================================');
+    const SEND_TIMEOUT = 30000; // 30 секунд таймаут на отправку
 
     const themeToggle = document.getElementById('themeToggle');
     themeToggle.addEventListener('click', () => {
@@ -251,15 +274,12 @@
     let currentIndex = 0;
     let currentSan = { s: null, a: null, n: null };
     let sessionRatings = [];
-    let sessionSent = false;
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
       document.getElementById(id).classList.add('active');
-      console.log('📺 Экран:', id);
     }
 
-    // Запрос с таймаутом, чтобы не висело вечно
     function fetchWithTimeout(url, options, ms) {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), ms);
@@ -267,93 +287,20 @@
         .finally(() => clearTimeout(t));
     }
 
-    function postJSON(obj, ms) {
-      return fetchWithTimeout(GOOGLE_SCRIPT_URL, {
+    async function loadData() {
+      quatrainPool = await (await fetch('f_f_1_210.json')).json();
+      respondentData = await (await fetch('respondent_data.json')).json();
+    }
+
+    async function reserveRespondent() {
+      const r = await fetchWithTimeout(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(obj)
-      }, ms || 20000).then(r => r.text());
-    }
-
-    async function loadData() {
-      try {
-        quatrainPool = await (await fetch('f_f_1_210.json')).json();
-        respondentData = await (await fetch('respondent_data.json')).json();
-        console.log('✅ Данные загружены: катренов', quatrainPool.length, ', схем', Object.keys(respondentData).length);
-        return true;
-      } catch (e) {
-        console.error('❌ Ошибка загрузки данных:', e);
-        return false;
-      }
-    }
-
-    // === НОМЕР ПОЛЬЗОВАТЕЛЯ ВЫДАЁТ СЕРВЕР ===
-    async function reserveRespondent() {
-      const txt = await postJSON({ type: 'start' }, 20000);
-      console.log('🎫 Ответ сервера на резерв:', txt);
+        body: JSON.stringify({ type: 'start' })
+      }, 20000);
+      const txt = await r.text();
       return JSON.parse(txt);
     }
-
-    // === ОТПРАВКА ВСЕЙ СЕССИИ ОДНИМ ПАКЕТОМ ===
-    async function sendSession() {
-      const payload = {
-        type: 'session',
-        respondent: currentRespondent,
-        ratings: sessionRatings,
-        finished: new Date().toISOString()
-      };
-      const txt = await postJSON(payload, 25000);
-      console.log('📦 Ответ сервера на сессию:', txt);
-      const json = JSON.parse(txt);
-      if (!json.ok) throw new Error(txt);
-      sessionSent = true;
-      localStorage.removeItem('t2_unsent');
-    }
-
-    // Кнопка "Отправить прошлую сессию" (если закрыл вкладку до отправки)
-    function refreshUnsentButton() {
-      const has = !!localStorage.getItem('t2_unsent');
-      document.getElementById('unsentBtn').style.display = has ? 'block' : 'none';
-    }
-
-    document.getElementById('unsentBtn').addEventListener('click', async () => {
-      const raw = localStorage.getItem('t2_unsent');
-      if (!raw) return;
-      const btn = document.getElementById('unsentBtn');
-      const st = document.getElementById('introStatus');
-      btn.disabled = true;
-      st.textContent = '⏳ Отправляем прошлую сессию...';
-      try {
-        const txt = await fetchWithTimeout(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: raw
-        }, 25000).then(r => r.text());
-        const json = JSON.parse(txt);
-        if (json.ok) {
-          localStorage.removeItem('t2_unsent');
-          st.textContent = '✓ Прошлая сессия отправлена';
-          st.style.color = 'var(--accent)';
-          refreshUnsentButton();
-        } else {
-          throw new Error(txt);
-        }
-      } catch (e) {
-        st.textContent = '❌ Не удалось отправить: ' + e.message;
-        st.style.color = 'var(--danger)';
-      }
-      btn.disabled = false;
-    });
-
-    // Если закрыл вкладку на экране "Готово" до отправки — пробуем beacon
-    window.addEventListener('pagehide', () => {
-      if (!sessionSent && sessionRatings.length === quatrainIds.length && quatrainIds.length > 0) {
-        const payload = JSON.stringify({ type: 'session', respondent: currentRespondent, ratings: sessionRatings, finished: new Date().toISOString() });
-        localStorage.setItem('t2_unsent', payload);
-        navigator.sendBeacon(GOOGLE_SCRIPT_URL, new Blob([payload], { type: 'text/plain' }));
-        console.log('📨 sendBeacon с сессией при закрытии страницы');
-      }
-    });
 
     document.getElementById('startSplashBtn').addEventListener('click', async () => {
       const btn = document.getElementById('startSplashBtn');
@@ -361,21 +308,22 @@
       const st = document.getElementById('introStatus');
       btn.disabled = true;
       err.textContent = '';
-      st.textContent = '';
-      console.log('👆 Нажата кнопка "Начать тест"');
+      st.textContent = '⏳ Получаем номер пользователя...';
 
-      if (!await loadData()) {
+      try {
+        await loadData();
+      } catch (e) {
         err.textContent = 'Не удалось загрузить файлы данных.';
         btn.disabled = false;
+        st.textContent = '';
         return;
       }
 
-      st.textContent = '⏳ Получаем номер пользователя...';
       let res;
       try {
         res = await reserveRespondent();
       } catch (e) {
-        err.textContent = 'Сервер недоступен: ' + e.message + '. Попробуйте ещё раз.';
+        err.textContent = 'Сервер недоступен: ' + e.message;
         btn.disabled = false;
         st.textContent = '';
         return;
@@ -397,7 +345,6 @@
 
       currentRespondent = res.respondent;
       sessionRatings = [];
-      sessionSent = false;
       console.log('🆔 Сервер выдал пользователя №', currentRespondent);
 
       const key = Object.keys(respondentData).find(k => k.trim() === `respondent_${currentRespondent}`);
@@ -407,17 +354,13 @@
         return;
       }
       quatrainIds = respondentData[key];
-      console.log('📋 Катренов в схеме:', quatrainIds.length);
 
       showScreen('screen-video');
       const video = document.getElementById('instructionVideo');
-      video.play().then(() => console.log('▶️ Видео играет (со звуком)')).catch(e => console.warn('⚠️ Autoplay заблокирован:', e.message));
+      video.play().catch(() => {});
       video.addEventListener('ended', startTest, { once: true });
       setTimeout(() => {
-        if (document.getElementById('screen-video').classList.contains('active')) {
-          console.log('⏰ 30 секунд — переход принудительно');
-          startTest();
-        }
+        if (document.getElementById('screen-video').classList.contains('active')) startTest();
       }, 30000);
     });
 
@@ -446,7 +389,6 @@
       textEl.className = 'quatrain-text grad-' + ((currentIndex % 3) + 1);
       document.getElementById('progressText').textContent = `Катрен ${currentIndex + 1} из ${quatrainIds.length} (Пользователь ${currentRespondent})`;
       document.getElementById('progressFill').style.width = `${(currentIndex / quatrainIds.length) * 100}%`;
-      console.log('📖 Катрен', currentIndex + 1, '/', quatrainIds.length, '→ ID:', qId);
     }
 
     document.querySelectorAll('.san-options').forEach(group => {
@@ -473,8 +415,6 @@
         n: currentSan.n,
         ts: new Date().toISOString()
       });
-      console.log('💾 Ответ добавлен в сессию:', sessionRatings.length, 'из', quatrainIds.length);
-      document.getElementById('statusMsg').textContent = `Сохранено локально: ${sessionRatings.length}/${quatrainIds.length}`;
 
       currentIndex++;
       if (currentIndex < quatrainIds.length) {
@@ -485,45 +425,55 @@
     });
 
     async function finishTest() {
-      document.getElementById('progressFill').style.width = '100%';
-      const endStatus = document.getElementById('endStatus');
-      const retryBtn = document.getElementById('retrySendBtn');
       showScreen('screen-end');
-      endStatus.textContent = '⏳ Отправляем результаты на сервер...';
+      document.getElementById('endSpinnerBlock').style.display = 'block';
+      document.getElementById('endDoneBlock').style.display = 'none';
 
       try {
-        await sendSession();
-        endStatus.textContent = `✓ Все 17 катренов отправлены (пользователь ${currentRespondent}).`;
-        endStatus.style.color = 'var(--accent)';
-        retryBtn.style.display = 'none';
-        console.log('🎉 Сессия отправлена полностью');
+        const r = await fetchWithTimeout(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            type: 'session',
+            respondent: currentRespondent,
+            ratings: sessionRatings,
+            finished: new Date().toISOString()
+          })
+        }, SEND_TIMEOUT);
+
+        const txt = await r.text();
+        const json = JSON.parse(txt);
+
+        if (json.ok) {
+          document.getElementById('endSpinnerBlock').style.display = 'none';
+          document.getElementById('endDoneBlock').style.display = 'block';
+          document.getElementById('endStatus').textContent = `Все 17 катренов отправлены (пользователь ${currentRespondent}).`;
+        } else {
+          throw new Error(txt);
+        }
       } catch (e) {
-        console.error('❌ Ошибка отправки сессии:', e);
-        localStorage.setItem('t2_unsent', JSON.stringify({ type: 'session', respondent: currentRespondent, ratings: sessionRatings, finished: new Date().toISOString() }));
-        endStatus.textContent = '⚠ Не удалось отправить. Результаты сохранены локально.';
-        endStatus.style.color = 'var(--danger)';
-        retryBtn.style.display = 'block';
+        document.getElementById('endSpinnerBlock').style.display = 'none';
+        document.getElementById('endDoneBlock').style.display = 'block';
+        document.getElementById('endStatus').textContent = 'Ошибка отправки: ' + e.message + '. Попробуйте ещё раз.';
+        document.getElementById('endStatus').style.color = 'var(--danger)';
+        document.getElementById('goodbyeBtn').textContent = 'Попробовать снова';
       }
     }
 
-    document.getElementById('retrySendBtn').addEventListener('click', async () => {
-      const retryBtn = document.getElementById('retrySendBtn');
-      const endStatus = document.getElementById('endStatus');
-      retryBtn.disabled = true;
-      endStatus.textContent = '⏳ Повторная отправка...';
-      try {
-        await sendSession();
-        endStatus.textContent = `✓ Все 17 катренов отправлены (пользователь ${currentRespondent}).`;
-        endStatus.style.color = 'var(--accent)';
-        retryBtn.style.display = 'none';
-      } catch (e) {
-        endStatus.textContent = '❌ Снова ошибка: ' + e.message;
-        endStatus.style.color = 'var(--danger)';
-      }
-      retryBtn.disabled = false;
+    document.getElementById('goodbyeBtn').addEventListener('click', () => {
+      location.reload();
     });
 
-    refreshUnsentButton();
+    // КНОПКА СБРОСА
+    document.getElementById('resetBtn').addEventListener('click', async () => {
+      if (!confirm('Сбросить всех пользователей? Файл ratings.txt будет очищен.')) return;
+      try {
+        await fetch(GOOGLE_SCRIPT_URL + '?action=reset&key=vn2026', { method: 'GET' });
+        alert('Сброс выполнен. Следующий пользователь будет №1.');
+      } catch (e) {
+        alert('Ошибка сброса: ' + e.message);
+      }
+    });
   </script>
 </body>
 </html>
