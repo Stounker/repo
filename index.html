@@ -2,9 +2,8 @@
 <html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
-  <meta name="theme-color" content="#0a1214">
-  <title>VitaNeuro T2 Calibration</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VitaNeuro T2</title>
   <style>
     :root, html[data-theme="dark"] {
       --bg: #0a1214;
@@ -45,17 +44,17 @@
       --grad-2: linear-gradient(135deg, rgba(217, 119, 6, 0.08), rgba(245, 239, 232, 0.6));
       --grad-3: linear-gradient(135deg, rgba(20, 184, 166, 0.05), rgba(217, 119, 6, 0.05), rgba(245, 239, 232, 0.6));
     }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; }
     body {
-      margin: 0; min-height: 100vh; min-height: 100dvh;
+      margin: 0; min-height: 100vh;
       color: var(--text); font-family: "Segoe UI", system-ui, sans-serif;
-      background: var(--bg); overflow-x: hidden; position: relative;
+      background: var(--bg); overflow-x: hidden;
       transition: background 0.3s ease, color 0.3s ease;
     }
     .screen {
-      display: none; min-height: 100vh; min-height: 100dvh;
+      display: none; min-height: 100vh;
       flex-direction: column; align-items: center; justify-content: center;
-      padding: 16px; animation: fadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      padding: 16px; animation: fadeIn 0.4s ease;
     }
     .screen.active { display: flex; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -66,46 +65,30 @@
       color: var(--text); border-radius: 50%; width: 44px; height: 44px;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; font-size: 20px; backdrop-filter: blur(10px);
-      transition: all 0.2s ease;
     }
-    .theme-toggle:hover { border-color: var(--line-strong); transform: scale(1.05); }
-
     .top-logo {
       position: absolute; top: 20px; left: 20px;
       width: 80px; height: 80px; object-fit: contain; z-index: 10;
     }
-
     #screen-video { padding: 0; background: #000; justify-content: center; overflow: hidden; }
-    #instructionVideo {
-      width: 100%; max-width: 100%;
-      max-height: 100vh; object-fit: contain;
-    }
-
+    #instructionVideo { width: 100%; max-height: 100vh; object-fit: contain; }
     .card {
       background: var(--card); border: 1px solid var(--line);
       border-radius: var(--radius); box-shadow: var(--shadow);
       padding: 32px; width: 100%; max-width: 520px;
-      backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+      backdrop-filter: blur(var(--glass-blur));
       position: relative; overflow: hidden; text-align: center;
     }
-    .card::before {
-      content: ""; position: absolute; inset: 0; border-radius: inherit;
-      background: linear-gradient(155deg, rgba(255,255,255,0.08) 0%, transparent 42%);
-      pointer-events: none;
-    }
     .card > * { position: relative; z-index: 2; }
-
-    h1 { margin: 0 0 16px; line-height: 1.2; font-weight: 700; font-size: clamp(26px, 5vw, 32px); color: var(--accent); }
+    h1 { margin: 0 0 16px; font-size: clamp(26px, 5vw, 32px); color: var(--accent); }
     p { margin: 0 0 24px; line-height: 1.6; color: var(--muted); }
     .instruction { font-size: 16px; color: var(--text); margin-bottom: 32px; }
-
     .btn {
       appearance: none; border: 1px solid var(--line);
       background: var(--card-solid); color: var(--text);
       border-radius: var(--radius-sm); padding: 16px;
       font-size: 16px; font-weight: 650; cursor: pointer; width: 100%;
-      transition: transform 0.12s ease, box-shadow 0.2s ease;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 4px 12px rgba(0,0,0,0.1);
+      transition: transform 0.12s ease;
     }
     .btn:hover { border-color: var(--line-strong); transform: translateY(-1px); }
     .btn:active { transform: translateY(1px) scale(0.98); }
@@ -113,30 +96,23 @@
       background: linear-gradient(145deg, var(--accent), #14b8a6);
       border-color: rgba(45, 212, 191, 0.4);
       color: #04201f; font-weight: 700;
-      box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 6px 18px rgba(45, 212, 191, 0.3);
     }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none; }
-
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
     .progress-wrap { width: 100%; height: 6px; background: var(--card-solid); border-radius: 3px; margin-bottom: 24px; overflow: hidden; }
-    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--warm)); border-radius: 3px; transition: width 0.3s ease; }
-
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--warm)); transition: width 0.3s ease; }
     .quatrain-text {
       font-size: clamp(16px, 4vw, 20px);
       line-height: 1.7; text-align: center;
       margin-bottom: 32px; white-space: pre-line;
       color: var(--text); padding: 24px;
       border-radius: 16px; border: 1px solid var(--line);
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      max-width: 100%;
-      hyphens: auto;
-      -webkit-hyphens: auto;
+      word-wrap: break-word; overflow-wrap: break-word;
+      max-width: 100%; hyphens: auto;
       transition: background 0.5s ease;
     }
     .quatrain-text.grad-1 { background: var(--grad-1); }
     .quatrain-text.grad-2 { background: var(--grad-2); }
     .quatrain-text.grad-3 { background: var(--grad-3); }
-
     .san-group { margin-bottom: 24px; text-align: left; }
     .san-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: var(--accent); }
     .san-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -144,26 +120,24 @@
       padding: 14px 10px; font-size: 14px; font-weight: 600;
       background: var(--card-solid); border: 2px solid var(--line);
       color: var(--muted); border-radius: 12px; cursor: pointer;
-      transition: all 0.2s ease; text-align: center;
     }
     .san-btn:hover { border-color: var(--line-strong); }
     .san-btn.selected {
       border-color: var(--accent); background: var(--accent-soft);
-      color: var(--accent); box-shadow: 0 0 12px rgba(45, 212, 191, 0.2); font-weight: 700;
+      color: var(--accent); font-weight: 700;
     }
     .san-btn.selected.neg {
       border-color: var(--warm); background: var(--warm-soft);
-      color: var(--warm); box-shadow: 0 0 12px rgba(251, 191, 122, 0.2);
+      color: var(--warm);
     }
-
-    .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; font-weight: 600; }
+    .error-msg { color: var(--danger); text-align: center; margin-top: 16px; font-size: 14px; }
     .success-msg { color: var(--accent); text-align: center; margin-top: 16px; font-size: 16px; font-weight: 700; }
     .status-msg { text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted); min-height: 18px; }
   </style>
 </head>
 <body>
 
-  <button class="theme-toggle" id="themeToggle" title="Сменить тему">🌙</button>
+  <button class="theme-toggle" id="themeToggle"></button>
 
   <div id="screen-splash" class="screen active">
     <img src="logo.png" alt="VitaNeuro" class="top-logo" onerror="this.style.display='none'">
@@ -183,7 +157,6 @@
   <div id="screen-video" class="screen">
     <video id="instructionVideo" playsinline>
       <source src="intro.mp4" type="video/mp4">
-      Ваш браузер не поддерживает видео.
     </video>
   </div>
 
@@ -191,9 +164,7 @@
     <div class="card">
       <div class="progress-wrap"><div id="progressFill" class="progress-fill" style="width: 0%"></div></div>
       <div id="progressText" style="text-align: center; font-size: 14px; color: var(--accent); margin-bottom: 16px; font-weight: 600;"></div>
-      
       <div id="quatrainText" class="quatrain-text grad-1"></div>
-      
       <div class="san-group">
         <div class="san-label">1. Самочувствие</div>
         <div class="san-options" data-axis="s">
@@ -202,7 +173,6 @@
           <button class="san-btn" data-val="1">Лёгкость</button>
         </div>
       </div>
-      
       <div class="san-group">
         <div class="san-label">2. Энергия</div>
         <div class="san-options" data-axis="a">
@@ -211,7 +181,6 @@
           <button class="san-btn" data-val="1">Подъём</button>
         </div>
       </div>
-      
       <div class="san-group">
         <div class="san-label">3. Настроение</div>
         <div class="san-options" data-axis="n">
@@ -220,7 +189,6 @@
           <button class="san-btn" data-val="1">Позитив</button>
         </div>
       </div>
-
       <button id="nextBtn" class="btn primary" disabled>Далее</button>
       <div id="testError" class="error-msg"></div>
       <div id="statusMsg" class="status-msg"></div>
@@ -236,8 +204,7 @@
   </div>
 
   <script>
-    // === ВСТАВЬ СЮДА СВОЮ НОВУЮ ССЫЛКУ НА СКРИПТ (заканчивается на /exec) ===
-    const GOOGLE_SCRIPT_URL = 'ВСТАВЬ_СЮДА_НОВУЮ_ССЫЛКУ_НА_СКРИПТ';
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkdr1RjjjSv7zjtRrx-ZBuvGhN-cVQK8ZhC4XUkcNThjsJKg2MXHKUc00VCdXihXqx/exec';
 
     const themeToggle = document.getElementById('themeToggle');
     themeToggle.addEventListener('click', () => {
