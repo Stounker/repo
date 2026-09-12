@@ -204,7 +204,6 @@
   </div>
 
   <script>
-    // === ВСТАВЬ СЮДА СВОЙ URL GOOGLE APPS SCRIPT ===
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkdr1RjjjSv7zjtRrx-ZBuvGhN-cVQK8ZhC4XUkcNThjsJKg2MXHKUc00VCdXihXqx/exec';
 
     const themeToggle = document.getElementById('themeToggle');
@@ -223,7 +222,6 @@
     let currentIndex = 0;
     let currentSan = { s: null, a: null, n: null };
     let ratings = JSON.parse(localStorage.getItem('ratings') || '[]');
-    let currentSession = null;
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
@@ -299,12 +297,6 @@
       }
       quatrainIds = respondentData[key];
 
-      currentSession = {
-        respondent: currentRespondent,
-        started: new Date().toISOString(),
-        ratings: []
-      };
-
       showScreen('screen-video');
       const video = document.getElementById('instructionVideo');
       video.play().catch(e => console.log("Autoplay blocked", e));
@@ -376,7 +368,6 @@
       
       ratings.push(rating);
       localStorage.setItem('ratings', JSON.stringify(ratings));
-      if (currentSession) currentSession.ratings.push(rating);
 
       await sendToServer(rating);
 
