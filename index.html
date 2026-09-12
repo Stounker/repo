@@ -76,10 +76,7 @@
     }
 
     #screen-video { padding: 0; background: #000; justify-content: center; overflow: hidden; }
-    #instructionVideo {
-      width: 100%; max-width: 100%;
-      max-height: 100vh; object-fit: contain;
-    }
+    #instructionVideo { width: 100%; max-width: 100%; max-height: 100vh; object-fit: contain; }
 
     .card {
       background: var(--card); border: 1px solid var(--line);
@@ -126,11 +123,8 @@
       margin-bottom: 32px; white-space: pre-line;
       color: var(--text); padding: 24px;
       border-radius: 16px; border: 1px solid var(--line);
-      word-wrap: break-word;
-      overflow-wrap: break-word;
-      max-width: 100%;
-      hyphens: auto;
-      -webkit-hyphens: auto;
+      word-wrap: break-word; overflow-wrap: break-word;
+      max-width: 100%; hyphens: auto; -webkit-hyphens: auto;
       transition: background 0.5s ease;
     }
     .quatrain-text.grad-1 { background: var(--grad-1); }
@@ -176,6 +170,8 @@
         после чего начнётся тестирование (17 катренов).
       </p>
       <button id="startSplashBtn" class="btn primary">Начать тест</button>
+      <button id="unsentBtn" class="btn" style="display:none; margin-top:10px;">📤 Отправить прошлую сессию</button>
+      <div id="introStatus" class="status-msg"></div>
       <div id="introError" class="error-msg"></div>
     </div>
   </div>
@@ -191,9 +187,7 @@
     <div class="card">
       <div class="progress-wrap"><div id="progressFill" class="progress-fill" style="width: 0%"></div></div>
       <div id="progressText" style="text-align: center; font-size: 14px; color: var(--accent); margin-bottom: 16px; font-weight: 600;"></div>
-      
       <div id="quatrainText" class="quatrain-text grad-1"></div>
-      
       <div class="san-group">
         <div class="san-label">1. Самочувствие</div>
         <div class="san-options" data-axis="s">
@@ -202,7 +196,6 @@
           <button class="san-btn" data-val="1">Лёгкость</button>
         </div>
       </div>
-      
       <div class="san-group">
         <div class="san-label">2. Энергия</div>
         <div class="san-options" data-axis="a">
@@ -211,7 +204,6 @@
           <button class="san-btn" data-val="1">Подъём</button>
         </div>
       </div>
-      
       <div class="san-group">
         <div class="san-label">3. Настроение</div>
         <div class="san-options" data-axis="n">
@@ -220,7 +212,6 @@
           <button class="san-btn" data-val="1">Позитив</button>
         </div>
       </div>
-
       <button id="nextBtn" class="btn primary" disabled>Далее</button>
       <div id="testError" class="error-msg"></div>
       <div id="statusMsg" class="status-msg"></div>
@@ -230,14 +221,15 @@
   <div id="screen-end" class="screen">
     <div class="card" style="text-align: center;">
       <h1 style="color: var(--accent);">✓ Готово</h1>
-      <p class="success-msg">Спасибо, тестирование окончено,<br>данные отправлены.</p>
-      <p style="color: var(--muted); font-size: 14px;">Все 17 катренов оценены.</p>
+      <p class="success-msg">Спасибо, тестирование окончено.</p>
+      <p id="endStatus" style="color: var(--muted); font-size: 14px;"></p>
+      <button id="retrySendBtn" class="btn" style="display:none; margin-top:10px;">Отправить снова</button>
     </div>
   </div>
 
   <script>
-    // === ТВОЙ URL Google Apps Script ===
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkdr1RjjjSv7zjtRrx-ZBuvGhN-cVQK8ZhC4XUkcNThjsJKg2MXHKUc00VCdXihXqx/exec';
+    const RESPONDENT_LIMIT = 50;
 
     console.log('===========================================');
     console.log('🚀 VitaNeuro T2 Calibration загружена');
@@ -247,41 +239,47 @@
     const themeToggle = document.getElementById('themeToggle');
     themeToggle.addEventListener('click', () => {
       const html = document.documentElement;
-      const current = html.getAttribute('data-theme');
-      const next = current === 'dark' ? 'light' : 'dark';
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
       themeToggle.textContent = next === 'dark' ? '🌙' : '☀️';
-      console.log('🎨 Тема переключена на:', next);
     });
 
     let quatrainPool = [];
     let respondentData = {};
-    let currentRespondent = 1;
+    let currentRespondent = null;
     let quatrainIds = [];
     let currentIndex = 0;
     let currentSan = { s: null, a: null, n: null };
-    let ratings = JSON.parse(localStorage.getItem('ratings') || '[]');
-
-    console.log('💾 Загружено оценок из localStorage:', ratings.length);
+    let sessionRatings = [];
+    let sessionSent = false;
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
       document.getElementById(id).classList.add('active');
-      console.log('📺 Экран переключён на:', id);
+      console.log('📺 Экран:', id);
+    }
+
+    // Запрос с таймаутом, чтобы не висело вечно
+    function fetchWithTimeout(url, options, ms) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), ms);
+      return fetch(url, Object.assign({}, options, { signal: ctrl.signal }))
+        .finally(() => clearTimeout(t));
+    }
+
+    function postJSON(obj, ms) {
+      return fetchWithTimeout(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(obj)
+      }, ms || 20000).then(r => r.text());
     }
 
     async function loadData() {
       try {
-        console.log('📥 Загружаем f_f_1_210.json...');
-        const poolResp = await fetch('f_f_1_210.json');
-        quatrainPool = await poolResp.json();
-        console.log('✅ Загружено катренов:', quatrainPool.length);
-
-        console.log('📥 Загружаем respondent_data.json...');
-        const respResp = await fetch('respondent_data.json');
-        respondentData = await respResp.json();
-        console.log('✅ Загружено схем респондентов:', Object.keys(respondentData).length);
-        
+        quatrainPool = await (await fetch('f_f_1_210.json')).json();
+        respondentData = await (await fetch('respondent_data.json')).json();
+        console.log('✅ Данные загружены: катренов', quatrainPool.length, ', схем', Object.keys(respondentData).length);
         return true;
       } catch (e) {
         console.error('❌ Ошибка загрузки данных:', e);
@@ -289,114 +287,135 @@
       }
     }
 
-    // === ГЛАВНАЯ ФУНКЦИЯ ОТПРАВКИ НА СКРИПТ ===
-    async function sendToServer(data) {
-      const statusEl = document.getElementById('statusMsg');
-      statusEl.textContent = '⏳ Отправка на сервер...';
-      statusEl.style.color = 'var(--warm)';
-      
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('📤 ОТПРАВКА ДАННЫХ НА СКРИПТ:');
-      console.log('   URL:', GOOGLE_SCRIPT_URL);
-      console.log('   Данные:', JSON.stringify(data, null, 2));
-      
-      try {
-        const startTime = Date.now();
-        const response = await fetch(GOOGLE_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(data)
-        });
-        
-        const duration = Date.now() - startTime;
-        console.log('✅ ОТВЕТ ПОЛУЧЕН за', duration, 'мс');
-        console.log('   Статус:', response.status, '(0 = opaque из-за no-cors — это нормально!)');
-        console.log('   Тип:', response.type);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        
-        statusEl.textContent = '✓ Сохранено (' + duration + ' мс)';
-        statusEl.style.color = 'var(--accent)';
-        return true;
-      } catch (e) {
-        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.error('❌ ОШИБКА ОТПРАВКИ:');
-        console.error('   Тип ошибки:', e.name);
-        console.error('   Сообщение:', e.message);
-        console.error('   Stack:', e.stack);
-        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        
-        statusEl.textContent = '❌ Ошибка сети (данные сохранены локально)';
-        statusEl.style.color = 'var(--danger)';
-        return false;
-      }
+    // === НОМЕР ПОЛЬЗОВАТЕЛЯ ВЫДАЁТ СЕРВЕР ===
+    async function reserveRespondent() {
+      const txt = await postJSON({ type: 'start' }, 20000);
+      console.log('🎫 Ответ сервера на резерв:', txt);
+      return JSON.parse(txt);
     }
+
+    // === ОТПРАВКА ВСЕЙ СЕССИИ ОДНИМ ПАКЕТОМ ===
+    async function sendSession() {
+      const payload = {
+        type: 'session',
+        respondent: currentRespondent,
+        ratings: sessionRatings,
+        finished: new Date().toISOString()
+      };
+      const txt = await postJSON(payload, 25000);
+      console.log('📦 Ответ сервера на сессию:', txt);
+      const json = JSON.parse(txt);
+      if (!json.ok) throw new Error(txt);
+      sessionSent = true;
+      localStorage.removeItem('t2_unsent');
+    }
+
+    // Кнопка "Отправить прошлую сессию" (если закрыл вкладку до отправки)
+    function refreshUnsentButton() {
+      const has = !!localStorage.getItem('t2_unsent');
+      document.getElementById('unsentBtn').style.display = has ? 'block' : 'none';
+    }
+
+    document.getElementById('unsentBtn').addEventListener('click', async () => {
+      const raw = localStorage.getItem('t2_unsent');
+      if (!raw) return;
+      const btn = document.getElementById('unsentBtn');
+      const st = document.getElementById('introStatus');
+      btn.disabled = true;
+      st.textContent = '⏳ Отправляем прошлую сессию...';
+      try {
+        const txt = await fetchWithTimeout(GOOGLE_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: raw
+        }, 25000).then(r => r.text());
+        const json = JSON.parse(txt);
+        if (json.ok) {
+          localStorage.removeItem('t2_unsent');
+          st.textContent = '✓ Прошлая сессия отправлена';
+          st.style.color = 'var(--accent)';
+          refreshUnsentButton();
+        } else {
+          throw new Error(txt);
+        }
+      } catch (e) {
+        st.textContent = '❌ Не удалось отправить: ' + e.message;
+        st.style.color = 'var(--danger)';
+      }
+      btn.disabled = false;
+    });
+
+    // Если закрыл вкладку на экране "Готово" до отправки — пробуем beacon
+    window.addEventListener('pagehide', () => {
+      if (!sessionSent && sessionRatings.length === quatrainIds.length && quatrainIds.length > 0) {
+        const payload = JSON.stringify({ type: 'session', respondent: currentRespondent, ratings: sessionRatings, finished: new Date().toISOString() });
+        localStorage.setItem('t2_unsent', payload);
+        navigator.sendBeacon(GOOGLE_SCRIPT_URL, new Blob([payload], { type: 'text/plain' }));
+        console.log('📨 sendBeacon с сессией при закрытии страницы');
+      }
+    });
 
     document.getElementById('startSplashBtn').addEventListener('click', async () => {
       const btn = document.getElementById('startSplashBtn');
       const err = document.getElementById('introError');
+      const st = document.getElementById('introStatus');
       btn.disabled = true;
       err.textContent = '';
+      st.textContent = '';
       console.log('👆 Нажата кнопка "Начать тест"');
 
-      const loaded = await loadData();
-      if (!loaded) {
-        err.textContent = 'Не удалось загрузить файлы данных (f_f_1_210.json или respondent_data.json).';
+      if (!await loadData()) {
+        err.textContent = 'Не удалось загрузить файлы данных.';
         btn.disabled = false;
         return;
       }
 
-      // Определяем номер пользователя
-      const usedUsers = new Set(ratings.map(r => r.respondent));
-      console.log('👥 Уже прошли тест:', [...usedUsers].join(', ') || 'никто');
-      
-      let found = false;
-      for (let i = 1; i <= 50; i++) {
-        if (!usedUsers.has(i)) {
-          currentRespondent = i;
-          found = true;
-          break;
-        }
-      }
-      
-      if (!found) {
-        btn.textContent = 'Тестирование окончено';
-        err.textContent = 'Все 50 респондентов прошли тест.';
-        console.log('⛔ Все 50 респондентов уже прошли тест');
+      st.textContent = '⏳ Получаем номер пользователя...';
+      let res;
+      try {
+        res = await reserveRespondent();
+      } catch (e) {
+        err.textContent = 'Сервер недоступен: ' + e.message + '. Попробуйте ещё раз.';
+        btn.disabled = false;
+        st.textContent = '';
         return;
       }
-      
-      console.log('🆔 Текущий респондент:', currentRespondent);
 
-      // Ищем ключ с trim (в JSON ключи типа "respondent_1 ")
+      if (!res.ok) {
+        err.textContent = 'Ошибка сервера: ' + JSON.stringify(res);
+        btn.disabled = false;
+        st.textContent = '';
+        return;
+      }
+
+      if (res.respondent > RESPONDENT_LIMIT) {
+        btn.textContent = 'Тестирование окончено';
+        err.textContent = 'Все 50 респондентов прошли тест.';
+        st.textContent = '';
+        return;
+      }
+
+      currentRespondent = res.respondent;
+      sessionRatings = [];
+      sessionSent = false;
+      console.log('🆔 Сервер выдал пользователя №', currentRespondent);
+
       const key = Object.keys(respondentData).find(k => k.trim() === `respondent_${currentRespondent}`);
       if (!key) {
         err.textContent = `Нет схемы для респондента ${currentRespondent}`;
         btn.disabled = false;
-        console.error('❌ Нет схемы для респондента', currentRespondent);
         return;
       }
       quatrainIds = respondentData[key];
-      console.log('📋 Схема респондента:', key, '→', quatrainIds.length, 'катренов');
-      console.log('📋 ID катренов:', quatrainIds.join(', '));
+      console.log('📋 Катренов в схеме:', quatrainIds.length);
 
-      // Запуск видео
       showScreen('screen-video');
       const video = document.getElementById('instructionVideo');
-      video.play().then(() => {
-        console.log('▶️ Видео начало воспроизводиться (со звуком)');
-      }).catch(e => {
-        console.warn('⚠️ Autoplay заблокирован браузером:', e.message);
-      });
-      
-      video.addEventListener('ended', () => {
-        console.log('⏹️ Видео закончилось');
-        startTest();
-      });
-      
+      video.play().then(() => console.log('▶️ Видео играет (со звуком)')).catch(e => console.warn('⚠️ Autoplay заблокирован:', e.message));
+      video.addEventListener('ended', startTest, { once: true });
       setTimeout(() => {
         if (document.getElementById('screen-video').classList.contains('active')) {
-          console.log('⏰ 30 секунд прошло — переход к тесту принудительно');
+          console.log('⏰ 30 секунд — переход принудительно');
           startTest();
         }
       }, 30000);
@@ -417,21 +436,17 @@
 
       const qId = quatrainIds[currentIndex];
       const q = quatrainPool.find(item => String(item.id).trim() === String(qId).trim());
-      
       if (!q) {
         document.getElementById('quatrainText').textContent = `Катрен ${qId} не найден`;
-        console.error('❌ Катрен не найден:', qId);
         return;
       }
 
       const textEl = document.getElementById('quatrainText');
       textEl.textContent = q.text;
       textEl.className = 'quatrain-text grad-' + ((currentIndex % 3) + 1);
-      
       document.getElementById('progressText').textContent = `Катрен ${currentIndex + 1} из ${quatrainIds.length} (Пользователь ${currentRespondent})`;
-      document.getElementById('progressFill').style.width = `${((currentIndex) / quatrainIds.length) * 100}%`;
-      
-      console.log('📖 Показан катрен', currentIndex + 1, '/', quatrainIds.length, '→ ID:', qId);
+      document.getElementById('progressFill').style.width = `${(currentIndex / quatrainIds.length) * 100}%`;
+      console.log('📖 Катрен', currentIndex + 1, '/', quatrainIds.length, '→ ID:', qId);
     }
 
     document.querySelectorAll('.san-options').forEach(group => {
@@ -442,40 +457,24 @@
           btn.classList.add('selected');
           if (btn.dataset.val === "-1") btn.classList.add('neg');
           currentSan[axis] = parseInt(btn.dataset.val, 10);
-          console.log(`   🎯 ${axis.toUpperCase()} = ${currentSan[axis]} (${btn.textContent})`);
-          
           if (currentSan.s !== null && currentSan.a !== null && currentSan.n !== null) {
             document.getElementById('nextBtn').disabled = false;
-            console.log('✅ Все 3 ответа даны, кнопка "Далее" активна');
           }
         });
       });
     });
 
-    document.getElementById('nextBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('nextBtn');
-      btn.disabled = true;
-      console.log('➡️ Нажата кнопка "Далее"');
-
+    document.getElementById('nextBtn').addEventListener('click', () => {
       const qId = quatrainIds[currentIndex];
-      
-      const rating = {
-        respondent: currentRespondent,
+      sessionRatings.push({
         quatrain: parseInt(qId),
         s: currentSan.s,
         a: currentSan.a,
         n: currentSan.n,
         ts: new Date().toISOString()
-      };
-      
-      console.log('💾 Сохраняем оценку:', rating);
-      
-      ratings.push(rating);
-      localStorage.setItem('ratings', JSON.stringify(ratings));
-      console.log('💾 Сохранено в localStorage. Всего оценок:', ratings.length);
-
-      // ОТПРАВКА НА СЕРВЕР
-      await sendToServer(rating);
+      });
+      console.log('💾 Ответ добавлен в сессию:', sessionRatings.length, 'из', quatrainIds.length);
+      document.getElementById('statusMsg').textContent = `Сохранено локально: ${sessionRatings.length}/${quatrainIds.length}`;
 
       currentIndex++;
       if (currentIndex < quatrainIds.length) {
@@ -485,11 +484,46 @@
       }
     });
 
-    function finishTest() {
-      console.log('🎉 Тест завершён! Пользователь', currentRespondent, 'прошёл все катрены.');
+    async function finishTest() {
       document.getElementById('progressFill').style.width = '100%';
-      setTimeout(() => showScreen('screen-end'), 500);
+      const endStatus = document.getElementById('endStatus');
+      const retryBtn = document.getElementById('retrySendBtn');
+      showScreen('screen-end');
+      endStatus.textContent = '⏳ Отправляем результаты на сервер...';
+
+      try {
+        await sendSession();
+        endStatus.textContent = `✓ Все 17 катренов отправлены (пользователь ${currentRespondent}).`;
+        endStatus.style.color = 'var(--accent)';
+        retryBtn.style.display = 'none';
+        console.log('🎉 Сессия отправлена полностью');
+      } catch (e) {
+        console.error('❌ Ошибка отправки сессии:', e);
+        localStorage.setItem('t2_unsent', JSON.stringify({ type: 'session', respondent: currentRespondent, ratings: sessionRatings, finished: new Date().toISOString() }));
+        endStatus.textContent = '⚠ Не удалось отправить. Результаты сохранены локально.';
+        endStatus.style.color = 'var(--danger)';
+        retryBtn.style.display = 'block';
+      }
     }
+
+    document.getElementById('retrySendBtn').addEventListener('click', async () => {
+      const retryBtn = document.getElementById('retrySendBtn');
+      const endStatus = document.getElementById('endStatus');
+      retryBtn.disabled = true;
+      endStatus.textContent = '⏳ Повторная отправка...';
+      try {
+        await sendSession();
+        endStatus.textContent = `✓ Все 17 катренов отправлены (пользователь ${currentRespondent}).`;
+        endStatus.style.color = 'var(--accent)';
+        retryBtn.style.display = 'none';
+      } catch (e) {
+        endStatus.textContent = '❌ Снова ошибка: ' + e.message;
+        endStatus.style.color = 'var(--danger)';
+      }
+      retryBtn.disabled = false;
+    });
+
+    refreshUnsentButton();
   </script>
 </body>
 </html>
